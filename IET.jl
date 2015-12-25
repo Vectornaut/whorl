@@ -1,33 +1,8 @@
 module IET
 
-using MPFI
+using ValidatedNumerics
 
-# === utilities
-
-# --- directions
-
-@enum Direction forward=1 backward=-1
-
-# --- interval arithmetic collision detection
-
-type CollisionException <: Exception
-  x::Interval
-  y::Interval
-end
-
-function strict_lt(x::Interval, y::Interval)
-  c = cmp(x, y)
-  if c == 0
-    throw(CollisionException(x, y))
-  end
-  c < 0
-end
-
-strict_gt(x::Interval, y::Interval) = !strict_lt(x, y)
-
-# === interval exchange cocycles
-
-# --- exchangers
+# === exchangers
 
 # an Exchanger is a piece of an interval exchange cocycle. it maps points in an
 # "in" block to points in an "out" block by translation, discarding points that
@@ -65,32 +40,44 @@ type Exchanger
   end
 end
 
-# apply the exchanger to a point
-function apply(h::Exchanger, x::Interval, dir::Direction=forward)
-  if strict_lt(x, h.in_left) || strict_gt(x, h.in_right)
-    return nothing
-  end
-  x + dir * h.f_shift
+# interval arithmetic collision exception
+type EndpointCollisionException <: Exception
+  h::Exchanger
+  k::Exchanger
 end
 
 # compose the exchangers h and k, returning nothing if the out block of k
 # doesn't overlap the in block of h
 function pipe(h::Exchanger, k::Exchanger)
+  # if it's not possible to tell whether the out block of k overlaps the in
+  # block of h, throw an exception
+  if !isdisjoint(h.in_right, k.out_left) || !isdisjoint(h.in_left, k.out_right)
+    throw(EndpointCollisionException(h, k))
+  end
+  
   # if out block of k doesn't overlap the in block of h, return nothing
-  if strict_lt(h.in_right, k.out_left) || strict_gt(h.in_left, k.out_right)
+  if strictprecedes(h.in_right, k.out_left) || strictprecedes(k.out_right, h.in_left)
     return nothing
   end
   
-  # find the left endpoint of the in block of the composed exchanger
+  # find the left endpoint of the in block of the composition
   new_left = k.in_left
-  if strict_gt(h.in_left, k.out_left)
+  if precedes(k.out_left, h.in_left) || !isdisjoint(k.out_left, h.in_left)
+    # notice that this line runs if the left endpoint of the in block of h
+    # collides with the left endpoint of the out block of k. that's because the
+    # collision contributes to the uncertainty in the left endpoint of the in
+    # block of the composition
     new_left += h.in_left - k.out_left
   end
   
   # find the right endpoint of the in block of the composed exchanger
   new_right = k.in_right
-  if strict_lt(h.in_right, k.out_right)
-    new_right = k.in_right + h.in_right - k.out_right
+  if precedes(h.in_right, k.out_right) || !isdisjoint(h.in_right, k.out_right)
+    # notice that this line runs if the right endpoint of the in block of h
+    # collides with the right endpoint of the out block of k. that's because the
+    # collision contributes to the uncertainty in the right endpoint of the in
+    # block of the composition
+    new_right += h.in_right - k.out_right
   end
   
   Exchanger(
@@ -106,14 +93,11 @@ function Base.show(io::IO, h::Exchanger)
   @printf(
     io,
     "[%0.3f, %0.3f] => [%0.3f, %0.3f]",
-    map(
-      x -> convert(AbstractFloat, x),
-      [h.in_left, h.in_right, h.out_left, h.out_right]
-    )...
+    map(mid, [h.in_left, h.in_right, h.out_left, h.out_right])...
   )
 end
 
-# --- interval exchange cocycles
+# === interval exchange cocycles
 
 type Cocycle
   # we're using interval arithmetic to keep track of endpoints, so the intervals
@@ -179,16 +163,22 @@ function twostep(a::Cocycle)
       end
     end
   end
+  Cocycle(new_blocks)
 end
 
 # === testing
 
 function test_routine()
   a = Cocycle(
-    [map(sin, map(Interval, ["0.3", "0.6", "1.2"])); Interval("1")],
+    [@interval(sin(0.3)), @interval(sin(0.6)), @interval(sin(1.2)), @interval(1)],
     [eye(2) for i in 1:4],
     [4, 3, 2, 1]
   )
+  for h in a.blocks
+    println(h)
+  end
+  
+  println("---")
   
   a2 = twostep(a)
   for h in a2.blocks
