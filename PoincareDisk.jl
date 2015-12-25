@@ -1,10 +1,20 @@
-module PoincareDisk
-export geodesic
-
 using Compose
 
-# draws the geodesic between two points on the unit circle
-function geodesic(tail::Complex, head::Complex)
+# find the repelling fixed point of a translation of the Poincaré disk
+function repeller{T <: Number}(tras::Matrix{T})
+  # i'm assuming eigfact returns the eigenvalues of a hermitian matrix in
+  # ascending order. that seems to be true, but i can't see why: even for
+  # hermitian matrices, eigfact calls LAPACK's geevx rather than heevx, so
+  # there shouldn't be any guarantee on the eigenvalue ordering.
+  line = eigvecs(Hermitian(tras' * tras))[:, 1]
+  
+  # we're safe from small denominators here, because the ratio is on the unit
+  # circle
+  line[1] / line[2]
+end
+
+# draw the geodesic between two points on the boundary of the Poincaré disk
+function geodesic(tail::Number, head::Number)
   arcangle = sqrt(head/tail)
   radius = abs(imag(arcangle)/real(arcangle))
   
@@ -21,15 +31,3 @@ function geodesic(tail::Complex, head::Complex)
   
   compose(context(units=UnitBox(-1, -1, 2, 2)), fill(nothing), arc)
 end
-
-draw(
-  SVG("geode_test.svg", 10cm, 10cm),
-  compose(
-    context(),
-    (context(), circle(), stroke("black"), fill(nothing)),
-    (context(), geodesic(exp((π/5)im), exp(π*im)), stroke("yellowgreen")),
-    (context(), geodesic(exp(0im), exp(π*im)), stroke("hotpink")),
-  )
-)
-
-end # module

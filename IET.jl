@@ -1,6 +1,6 @@
-module IET
+using ValidatedNumerics, Compose
 
-using ValidatedNumerics
+include("PoincareDisk.jl")
 
 # === exchangers
 
@@ -46,17 +46,21 @@ type EndpointCollisionException <: Exception
   k::Exchanger
 end
 
-# compose the exchangers h and k, returning nothing if the out block of k
-# doesn't overlap the in block of h
-function pipe(h::Exchanger, k::Exchanger)
-  # if it's not possible to tell whether the out block of k overlaps the in
-  # block of h, throw an exception
+# checks whether the out block of k misses the in block of h
+function missed_connection(h::Exchanger, k::Exchanger)
+  # if we can't tell, throw an exception
   if !isdisjoint(h.in_right, k.out_left) || !isdisjoint(h.in_left, k.out_right)
     throw(EndpointCollisionException(h, k))
   end
   
-  # if out block of k doesn't overlap the in block of h, return nothing
-  if strictprecedes(h.in_right, k.out_left) || strictprecedes(k.out_right, h.in_left)
+  strictprecedes(h.in_right, k.out_left) || strictprecedes(k.out_right, h.in_left)
+end
+
+# compose the exchangers h and k, returning nothing if the out block of k
+# misses the in block of h
+function pipe(h::Exchanger, k::Exchanger)
+  # if out block of k misses the in block of h, return nothing
+  if missed_connection(h, k)
     return nothing
   end
   
@@ -150,6 +154,9 @@ function Cocycle{
   Cocycle(blocks)
 end
 
+# compose an interval exchange cocyle with itself, roughly doubling the number
+# of blocks (if the original interval exchange has n blocks, the new one will
+# have 2n - 1)
 function twostep(a::Cocycle)
   new_blocks = Exchanger[]
   for k in a.blocks
@@ -166,24 +173,43 @@ function twostep(a::Cocycle)
   Cocycle(new_blocks)
 end
 
+function lamination(a::Cocycle)
+  lam = Context[]
+  
+  # like the one in twostep, this loop could be made much more efficient
+  for k in a.blocks
+    for h in a.blocks
+      if !missed_connection(h, k)
+        push!(lam, geodesic(repeller(h.f_transit), repeller(k.b_transit)))
+      end
+    end
+  end
+  
+  compose(context(), lam...)
+end
+
 # === testing
+
+include("regular.jl")
 
 function test_routine()
   a = Cocycle(
-    [@interval(sin(0.3)), @interval(sin(0.6)), @interval(sin(1.2)), @interval(1)],
-    [eye(2) for i in 1:4],
+    #[@interval(sin(0.3)), @interval(sin(0.6)), @interval(sin(1.2)), @interval(1)],
+    [@interval(sin(0.1)), @interval(sin(0.5)), @interval(sin(1.4)), @interval(1)],
+    generators(2),
     [4, 3, 2, 1]
   )
+  
   for h in a.blocks
     println(h)
   end
   
-  println("---")
-  
-  a2 = twostep(a)
-  for h in a2.blocks
-    println(h)
+  for i in 1:2
+    a = twostep(a)
   end
+  
+  draw(
+    SVG("lam_test.svg", 10cm, 10cm),
+    compose(context(), lamination(twostep(twostep(twostep(a)))), stroke("black"), fill(nothing))
+  )
 end
-
-end # module
