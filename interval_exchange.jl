@@ -173,14 +173,22 @@ function twostep(a::Cocycle)
   Cocycle(new_blocks)
 end
 
-function lamination(a::Cocycle)
+function lamination(a::Cocycle, sym=nothing, depth=0)
   lam = Context[]
   
   # like the one in twostep, this loop could be made much more efficient
   for k in a.blocks
     for h in a.blocks
       if !missed_connection(h, k)
-        push!(lam, geodesic(repeller(h.f_transit), repeller(k.b_transit)))
+        push!(
+          lam,
+          geodesic_orbit(
+            repeller(h.f_transit),
+            repeller(k.b_transit),
+            sym,
+            depth
+          )
+        )
       end
     end
   end
@@ -204,12 +212,12 @@ function test_routine()
     println(h)
   end
   
-  for i in 1:2
+  for i in 1:3
     a = twostep(a)
   end
   
   draw(
     SVG("lam_test.svg", 10cm, 10cm),
-    compose(context(), lamination(twostep(twostep(twostep(a)))), stroke("black"), fill(nothing))
+    compose(context(), lamination(a, generators(2), 3), stroke("black"), fill(nothing))
   )
 end
