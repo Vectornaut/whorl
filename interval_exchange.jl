@@ -217,7 +217,7 @@ function test_routine()
   end
   
   draw(
-    SVG("lam_test.svg", 10cm, 10cm),
-    compose(context(), lamination(a, generators(2), 3), stroke("black"), fill(nothing))
+    PDF("lam_test.pdf", 10cm, 10cm),
+    compose(context(), lamination(a, generators(2), 3), stroke("black"), linewidth(0.1), fill(nothing))
   )
 end

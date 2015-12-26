@@ -26,10 +26,7 @@ function geodesic(tail::Number, head::Number)
   compose(
     context(units=UnitBox(-1, -1, 2, 2)),
     fill(nothing),
-    path([
-      :M, real(tail)*cx, imag(tail)*cy,
-      :C, real(k*tail)*cx, imag(k*tail)*cy, real(k*head)*cx, imag(k*head)*cy, real(head)*cx, imag(head)*cy
-    ])
+    curve(reim(tail), reim(k*tail), reim(k*head), reim(head))
   )
 end
 
