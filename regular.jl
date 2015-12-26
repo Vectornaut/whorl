@@ -6,6 +6,6 @@ function slide(genus::Integer)
   frame * diagm([λ, 1/λ]) * inv(frame)
 end
 
-turn(genus::Integer, s::Integer) = [[exp(1im*s*π/(2*genus)), 0] [0, 1]]
+turn(genus::Integer, s::Integer) = [[cis(s*π/(2*genus)), 0] [0, 1]]
 
 generators(genus::Integer) = [turn(genus, s) * slide(genus) * turn(genus, -s) for s in 1:2genus]

@@ -20,21 +20,17 @@ end
 
 # draw the geodesic between two points on the boundary of the Poincaré disk
 function geodesic(tail::Number, head::Number)
-  arcangle = sqrt(head/tail)
-  radius = abs(imag(arcangle)/real(arcangle))
-  
-  if real(arcangle) > 1e-6
-    # the geodesic is visibly curved
-    arc = path([
-            :M, real(tail)*cx, imag(tail)*cy,
-            :A, radius*cx, radius*cy, 0, false, imag(arcangle) < 0, real(head)*cx, imag(head)*cy
-          ])
-  else
-    # the geodesic looks straight
-    arc = line([(real(tail)*cx, imag(tail)*cy), (real(head)*cx, imag(head)*cy)])
-  end
-  
-  compose(context(units=UnitBox(-1, -1, 2, 2)), fill(nothing), arc)
+  # this is clinton curry's method for approximating geodesics by cubic curves
+  # http://clintoncurry.nfshost.com/math/poincare-geodesics.html
+  k = 4/3 * (1/(1 + sqrt(1 - abs2(head + tail)/4)) - 1/4)
+  compose(
+    context(units=UnitBox(-1, -1, 2, 2)),
+    fill(nothing),
+    path([
+      :M, real(tail)*cx, imag(tail)*cy,
+      :C, real(k*tail)*cx, imag(k*tail)*cy, real(k*head)*cx, imag(k*head)*cy, real(head)*cx, imag(head)*cy
+    ])
+  )
 end
 
 # draw the orbit of a geodesic under a finitely generated group of isometries
