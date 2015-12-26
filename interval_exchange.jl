@@ -200,7 +200,7 @@ end
 
 include("regular.jl")
 
-function test_routine()
+function lam_test()
   a = Cocycle(
     #[@interval(sin(0.3)), @interval(sin(0.6)), @interval(sin(1.2)), @interval(1)],
     [@interval(sin(0.1)), @interval(sin(0.5)), @interval(sin(1.4)), @interval(1)],
@@ -218,6 +218,35 @@ function test_routine()
   
   draw(
     PDF("lam_test.pdf", 10cm, 10cm),
-    compose(context(), lamination(a, generators(2), 3), stroke("black"), linewidth(0.1), fill(nothing))
+    compose(context(), lamination(a, generators(2), 3), stroke("black"), linewidth(0.1))
+  )
+end
+
+function arc_test()
+  p = [1, 1im, -1im]
+  q = [cis(0.2), cis(0.5), cis(1.3)]
+  r = [cis(1.6), cis(3.4), cis(4.5)]
+  draw(
+    PDF("arc_test.pdf", 10cm, 10cm),
+    compose(
+      context(), linewidth(0.1),
+      (
+        context(0.1, 0.1, 0.8, 0.8),
+        (
+          context(), stroke("plum"),
+          [horoleaves(p[t + 1], p[(t+1)%3 + 1], p[(t+2)%3 + 1], 50) for t in 0:2]...,
+        ),
+        (
+          context(), stroke("lightsalmon"),
+          [horoleaves(q[t + 1], q[(t+1)%3 + 1], q[(t+2)%3 + 1], 50) for t in 0:2]...,
+        ),
+        (
+          context(), stroke("burlywood"),
+          [horoleaves(r[t + 1], r[(t+1)%3 + 1], r[(t+2)%3 + 1], 50) for t in 0:2]...,
+        ),
+        (context(), circle(), fill("white"))
+      ),
+      (context(), rectangle(), fill("dimgrey"))
+    )
   )
 end

@@ -1,9 +1,20 @@
 using Compose
 
-# apply a möbius transformation, given as an operator on C^2, to a complex
-# number
+# === möbius transformations
+
+# apply a möbius transformation, given as an operator on C^2, to a point on the
+# complex plane
 möbius_map{T <: Number}(m::Matrix{T}, z) =
   (m[1,1]*z + m[1,2]) / (m[2,1]*z + m[2,2])
+
+# find the derivative of a möbius transformation, given as an operator on C^2,
+# at a point on the complex plane
+function möbius_deriv{T <: Number}(m::Matrix{T}, z)
+  u = m[2,1]*z + m[2, 2]
+  (m[1,1]*m[2,2] - m[1,2]*m[2,1]) / (u * u)
+end
+
+# === geodesics and horocycles
 
 # find the repelling fixed point of a translation of the Poincaré disk
 function repeller{T <: Number}(m::Matrix{T})
@@ -20,15 +31,75 @@ end
 
 # draw the geodesic between two points on the boundary of the Poincaré disk
 function geodesic(tail::Number, head::Number)
-  # this is clinton curry's method for approximating geodesics by cubic curves
+  # this is Clinton Curry's method for approximating geodesics by cubic curves
   # http://clintoncurry.nfshost.com/math/poincare-geodesics.html
   k = 4/3 * (1/(1 + sqrt(1 - abs2(head + tail)/4)) - 1/4)
   compose(
     context(units=UnitBox(-1, -1, 2, 2)),
-    fill(nothing),
     curve(reim(tail), reim(k*tail), reim(k*head), reim(head))
   )
 end
+
+# draw the circular arc from tail to head with the specified direction at the
+# the tail. the length of the direction vector doesn't matter. unstable at large
+# radii and near right angles, but our usage, in the function horoarc, avoids
+# both conditions.
+function arc(tail::Number, head::Number, dir::Number)
+  # this is Aleksas Riškus's method for approximating circular arcs by cubic
+  # curves, found in the paper "Approximation of a cubic Bezier curve by
+  # circular arcs and vice versa".
+  
+  # the angle from the ray tail --> head to the tangent ray, given as a point on
+  # the unit circle
+  sweep = dir / (head - tail)
+  sweep /= abs(sweep)
+  
+  # the magic number
+  k = 4/3*(sqrt(2) - 1) * abs(imag(sweep)/real(sweep))
+  
+  # the radius of the arc
+  r = abs((head - tail) / 2imag(sweep))
+  
+  # unit tangent vectors at the head and the tail
+  tail_tan = dir / abs(dir)
+  head_tan = tail_tan / (sweep * sweep)
+  
+  compose(
+    context(units=UnitBox(-1, -1, 2, 2)),
+    curve(reim(tail), reim(tail + k*r*tail_tan), reim(head - k*r*head_tan), reim(head))
+  )
+end
+
+# draw an arc of a horocycle at osc, starting at the geodesic osc -- a and
+# ending at the geodesic osc -- b. as the height parameter varies from 1 to 0,
+# the arc shrinks from an edge of the orthic triangle down to the point osc.
+function horoarc(osc::Number, a::Number, b::Number, height::Number)
+  # find head, tail, and direction of the desired arc on the standard
+  std_dir = cis(π/2 + height*π/6)
+  std_head = 1 + sqrt(3)*(1im + conj(std_dir))
+  std_tail = 1 + sqrt(3)*(-1im + std_dir)
+  
+  # build the möbius transformation
+  #  1         --> osc     1         -->  0 --> osc
+  #  cis(2π/3) --> a    =  cis(2π/3) -->  1 --> a
+  #  cis(4π/3) --> b       cis(4π/3) --> -1 --> b
+  m = [[2a*b - osc*(a + b), a + b - 2osc] [osc*(b - a), b - a]] * [[-1im, sqrt(3)] [1im, sqrt(3)]]
+  
+  # apply the mobius transformation to get the desired arc on the triangle
+  # osc, a, b
+  arc(
+    möbius_map(m, std_tail),
+    möbius_map(m, std_head),
+    möbius_deriv(m, std_tail) * std_dir
+  )
+end
+
+# foliate the the osc corner of the triangle osc, a, b using the specified
+# number of horocycles, _density_
+horoleaves(osc::Number, a::Number, b::Number, density::Integer) =
+  compose(context(), [horoarc(osc, a, b, h/density) for h in 1:density]...)
+
+# === orbit drawing
 
 # draw the orbit of a geodesic under a finitely generated group of isometries
 function geodesic_orbit(
