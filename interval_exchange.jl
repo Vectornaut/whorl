@@ -109,6 +109,9 @@ type Cocycle
   blocks::Array{Exchanger, 1}
 end
 
+# if you label the blocks 1, 2, 3... from left to right, apply the interval
+# exchange, and read off the labels from left to right again, you get the list
+# f_shuffle
 function Cocycle{
   R <: Interval, S <: Any, T <: Integer
 }(
