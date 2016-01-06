@@ -43,23 +43,24 @@ end
 
 # === testing
 
-function caterpillar_test(angle_change::Interval)
-  a = twisted_caterpillar(@interval(3π/4) + angle_change)
-  
+function caterpillar_pics(angle_offset::Interval)
+  # set up cocycle
+  a = twisted_caterpillar(@interval(3π/4) + angle_offset)
   for h in a.blocks
     println(h)
   end
-  
   for i in 1:3
     a = twostep(a)
   end
   
-  draw(
-    PDF("lam_test.pdf", 10cm, 10cm),
-    compose(
-      context(),
-      (context(), lamination(a), linewidth(0.1)),
-      (context(), circle(), stroke("black"), fill("white"))
-    )
-  )
+  # draw poincaré disk
+  disk = compose(context(), circle(), stroke("black"), fill(nothing), linewidth(0.4mm))
+  
+  # draw lamination and foliation
+  lam = compose(context(), lamination(a, generators(2), 3), stroke("black"), linewidth(0.1mm))
+  fol = compose(context(), foliage(a), stroke("plum"), linewidth(0.1))
+  
+  # print outputs
+  draw(PDF("laminated.pdf", 7cm, 7cm), compose(disk, lam))
+  draw(PDF("foliated.pdf", 7cm, 7cm), compose(disk, lam, fol))
 end

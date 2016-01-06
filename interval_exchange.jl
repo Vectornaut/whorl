@@ -176,7 +176,28 @@ function twostep(a::Cocycle)
   Cocycle(new_blocks)
 end
 
-function lamination(a::Cocycle)
+function lamination(a::Cocycle, sym, depth=0)
+  lam = Context[]
+  
+  for k in a.blocks
+    for h in a.blocks
+      if !missed_connection(h, k)
+        push!(
+          lam,
+          geodesic_orbit(
+            repeller(k.b_transit),
+            repeller(h.f_transit),
+            sym, depth
+          )
+        )
+      end
+    end
+  end
+  
+  compose(context(), lam...)
+end
+
+function foliage(a::Cocycle)
   triangles = Context[]
   
   in_order = a.blocks
@@ -193,7 +214,7 @@ function lamination(a::Cocycle)
             repeller(k.b_transit),
             repeller(in_order[s].f_transit),
             repeller(in_order[s+1].f_transit),
-            50, "black", "plum"
+            50
           )
         )
       end
@@ -210,7 +231,7 @@ function lamination(a::Cocycle)
             repeller(h.f_transit),
             repeller(out_order[s+1].b_transit),
             repeller(out_order[s].b_transit),
-            50, "black", "lightsalmon"
+            50
           )
         )
       end
@@ -218,59 +239,4 @@ function lamination(a::Cocycle)
   end
   
   compose(context(), triangles...)
-end
-
-# === testing
-
-include("regular.jl")
-
-function lam_test()
-  a = Cocycle(
-    #[@interval(sin(0.3)), @interval(sin(0.6)), @interval(sin(1.2)), @interval(1)],
-    [@interval(sin(0.1)), @interval(sin(0.5)), @interval(sin(1.4)), @interval(1)],
-    generators(2),
-    [4, 3, 2, 1]
-  )
-  
-  for h in a.blocks
-    println(h)
-  end
-  
-  for i in 1:3
-    a = twostep(a)
-  end
-  
-  draw(
-    PDF("lam_test.pdf", 10cm, 10cm),
-    compose(context(), lamination(a, generators(2), 4), stroke("black"), linewidth(0.1))
-  )
-end
-
-function arc_test()
-  p = [1, 1im, -1im]
-  q = [cis(0.2), cis(0.5), cis(1.3)]
-  r = [cis(1.6), cis(3.4), cis(4.5)]
-  draw(
-    PDF("arc_test.pdf", 10cm, 10cm),
-    compose(
-      context(), linewidth(0.1),
-      (
-        context(0.1, 0.1, 0.8, 0.8),
-        (
-          context(), stroke("plum"),
-          [horoleaves(p[t + 1], p[(t+1)%3 + 1], p[(t+2)%3 + 1], 50) for t in 0:2]...,
-        ),
-        (
-          context(), stroke("lightsalmon"),
-          [horoleaves(q[t + 1], q[(t+1)%3 + 1], q[(t+2)%3 + 1], 50) for t in 0:2]...,
-        ),
-        (
-          context(), stroke("burlywood"),
-          [horoleaves(r[t + 1], r[(t+1)%3 + 1], r[(t+2)%3 + 1], 50) for t in 0:2]...,
-        ),
-        (context(), circle(), fill("white"))
-      ),
-      (context(), rectangle(), fill("dimgrey"))
-    )
-  )
 end
