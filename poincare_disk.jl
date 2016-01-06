@@ -101,6 +101,27 @@ end
 horoleaves(osc::Number, a::Number, b::Number, density::Integer) =
   compose(context(), [horoarc(osc, a, b, h/density) for h in 1:density]...)
 
+# draw a triangle foliated by horocycles
+function horotriangle(
+  osc::Number, a::Number, b::Number,
+  density::Integer, sidecolor="black", horocolor="black"
+)
+  sides = compose(
+    context(),
+    geodesic(osc, a),
+    geodesic(a, b),
+    stroke(sidecolor)
+  )
+  bulk = compose(
+    context(),
+    horoleaves(osc, a, b, density),
+    horoleaves(a, b, osc, density),
+    horoleaves(b, osc, a, density),
+    stroke(horocolor)
+  )
+  compose(context(), sides, bulk)
+end
+
 # === orbit drawing
 
 # draw the orbit of a geodesic under a finitely generated group of isometries
@@ -154,8 +175,6 @@ function triangle_orbit(
   
   # draw the horocycle foliation
   push!(orbit, horoleaves(c, a, b, density))
-  ##push!(orbit, horoleaves(a, b, c, density))
-  ##push!(orbit, horoleaves(b, c, a, density))
   
   # draw the sides
   ##push!(orbit, compose(context(), stroke("orange"), geodesic(c, a)))

@@ -56,6 +56,10 @@ function caterpillar_test(angle_change::Interval)
   
   draw(
     PDF("lam_test.pdf", 10cm, 10cm),
-    compose(context(), lamination(a, generators(2), 0), stroke("black"), linewidth(0.1))
+    compose(
+      context(),
+      (context(), lamination(a), linewidth(0.1)),
+      (context(), circle(), stroke("black"), fill("white"))
+    )
   )
 end

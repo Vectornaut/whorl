@@ -176,54 +176,48 @@ function twostep(a::Cocycle)
   Cocycle(new_blocks)
 end
 
-function lamination(a::Cocycle, sym=nothing, depth=0)
-  lam = Context[]
+function lamination(a::Cocycle)
+  triangles = Context[]
   
-  # like the one in twostep, this loop could be made much more efficient
-  for k in a.blocks
-    for s in 1:(length(a.blocks) - 1)
-      if !missed_connection(a.blocks[s], k) && !missed_connection(a.blocks[s+1], k)
+  in_order = a.blocks
+  out_order = sort(a.blocks, by=bl -> bl.out_left)
+  
+  # like the one in twostep, the loops below could be made much more efficient
+  
+  for k in in_order
+    for s in 1:(length(in_order) - 1)
+      if !missed_connection(in_order[s], k) && !missed_connection(in_order[s+1], k)
         push!(
-          lam,
-          triangle_orbit(
+          triangles,
+          horotriangle(
             repeller(k.b_transit),
-            repeller(a.blocks[s].f_transit),
-            repeller(a.blocks[s+1].f_transit),
-            50,
-            sym,
-            depth
+            repeller(in_order[s].f_transit),
+            repeller(in_order[s+1].f_transit),
+            50, "black", "plum"
           )
         )
-        #=push!(
-          lam,
-          horoleaves(repeller(k.b_transit), repeller(a.blocks[s].f_transit), repeller(a.blocks[s+1].f_transit), 50)
-        )=#
       end
     end
   end
-  
-  # ------
   
   out_order = sort(a.blocks, by=bl -> bl.out_left)
   for h in out_order
     for s in 1:(length(out_order) - 1)
       if !missed_connection(h, out_order[s]) && !missed_connection(h, out_order[s+1])
         push!(
-          lam,
-          triangle_orbit(
+          triangles,
+          horotriangle(
             repeller(h.f_transit),
             repeller(out_order[s+1].b_transit),
             repeller(out_order[s].b_transit),
-            50,
-            map(inv, sym),
-            depth
+            50, "black", "lightsalmon"
           )
         )
       end
     end
   end
   
-  compose(context(), lam...)
+  compose(context(), triangles...)
 end
 
 # === testing
