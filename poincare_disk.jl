@@ -33,7 +33,8 @@ end
 function geodesic(tail::Number, head::Number)
   # this is Clinton Curry's method for approximating geodesics by cubic curves
   # http://clintoncurry.nfshost.com/math/poincare-geodesics.html
-  k = 4/3 * (1/(1 + sqrt(1 - abs2(head + tail)/4)) - 1/4)
+  # the _max_ in k is a kludge to avoid square roots of negative numbers
+  k = 4/3 * (1/(1 + sqrt(max(1 - abs2(head + tail)/4, 0))) - 1/4)
   compose(
     context(units=UnitBox(-1, -1, 2, 2)),
     curve(reim(tail), reim(k*tail), reim(k*head), reim(head))
@@ -74,7 +75,8 @@ end
 # ending at the geodesic osc -- b. as the height parameter varies from 1 to 0,
 # the arc shrinks from an edge of the orthic triangle down to the point osc.
 function horoarc(osc::Number, a::Number, b::Number, height::Number)
-  # find head, tail, and direction of the desired arc on the standard
+  # find head, tail, and direction of the desired arc on the standard triangle
+  # 1, cis(π/3), cis(2π/3)
   std_dir = cis(π/2 + height*π/6)
   std_head = 1 + sqrt(3)*(1im + conj(std_dir))
   std_tail = 1 + sqrt(3)*(-1im + std_dir)
@@ -130,6 +132,54 @@ function geodesic_orbit(
         b_head = möbius_map(inv(sym[s]), head)
         b_tail = möbius_map(inv(sym[s]), tail)
         push!(orbit, geodesic_orbit(b_tail, b_head, sym, depth - 1, -s))
+      end
+    end
+  end
+  
+  compose(context(), orbit...)
+end
+
+# draw the orbit of a horocycle-foliated ideal triangle under a finitely
+# generated group of isometries
+function triangle_orbit(
+  a::Number,
+  b::Number,
+  c::Number,
+  density::Integer,
+  sym,
+  depth::Integer,
+  last_sym = nothing
+)
+  orbit = []
+  
+  # draw the horocycle foliation
+  push!(orbit, horoleaves(c, a, b, density))
+  push!(orbit, horoleaves(a, b, c, density))
+  push!(orbit, horoleaves(b, c, a, density))
+  
+  # draw the sides
+  push!(orbit, geodesic(c, a))
+  push!(orbit, geodesic(a, b))
+  push!(orbit, geodesic(b, c))
+  
+  # if we're going deeper into the orbit, apply the generators and their
+  # inverses and recurse
+  if depth > 0
+    for s in 1:length(sym)
+      # apply generator
+      if last_sym != -s
+        fa = möbius_map(sym[s], a)
+        fb = möbius_map(sym[s], b)
+        fc = möbius_map(sym[s], c)
+        push!(orbit, triangle_orbit(fa, fb, fc, density, sym, depth - 1, s))
+      end
+      
+      # apply inverse generator
+      if last_sym != s
+        ba = möbius_map(inv(sym[s]), a)
+        bb = möbius_map(inv(sym[s]), b)
+        bc = möbius_map(inv(sym[s]), c)
+        push!(orbit, triangle_orbit(ba, bb, bc, density, sym, depth - 1, -s))
       end
     end
   end

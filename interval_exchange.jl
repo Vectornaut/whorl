@@ -181,13 +181,40 @@ function lamination(a::Cocycle, sym=nothing, depth=0)
   
   # like the one in twostep, this loop could be made much more efficient
   for k in a.blocks
-    for h in a.blocks
-      if !missed_connection(h, k)
+    for s in 1:(length(a.blocks) - 1)
+      if !missed_connection(a.blocks[s], k) && !missed_connection(a.blocks[s+1], k)
         push!(
           lam,
-          geodesic_orbit(
-            repeller(h.f_transit),
+          triangle_orbit(
             repeller(k.b_transit),
+            repeller(a.blocks[s].f_transit),
+            repeller(a.blocks[s+1].f_transit),
+            50,
+            sym,
+            depth
+          )
+        )
+        #=push!(
+          lam,
+          horoleaves(repeller(k.b_transit), repeller(a.blocks[s].f_transit), repeller(a.blocks[s+1].f_transit), 50)
+        )=#
+      end
+    end
+  end
+  
+  # ------
+  
+  out_order = sort(a.blocks, by=block -> block.out_left)
+  for h in out_order
+    for s in 1:(length(out_order) - 1)
+      if !missed_connection(h, out_order[s]) && !missed_connection(h, out_order[s+1])
+        push!(
+          lam,
+          triangle_orbit(
+            repeller(h.f_transit),
+            repeller(out_order[s+1].b_transit),
+            repeller(out_order[s].b_transit),
+            50,
             sym,
             depth
           )
@@ -221,7 +248,7 @@ function lam_test()
   
   draw(
     PDF("lam_test.pdf", 10cm, 10cm),
-    compose(context(), lamination(a, generators(2), 3), stroke("black"), linewidth(0.1))
+    compose(context(), lamination(a, generators(2), 4), stroke("black"), linewidth(0.1))
   )
 end
 
