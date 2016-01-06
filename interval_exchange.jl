@@ -201,7 +201,7 @@ function foliage(a::Cocycle)
   triangles = Context[]
   
   in_order = a.blocks
-  out_order = sort(a.blocks, by=bl -> bl.out_left)
+  out_order = sort(a.blocks, by = bl -> bl.out_left)
   
   # like the one in twostep, the loops below could be made much more efficient
   
@@ -214,7 +214,7 @@ function foliage(a::Cocycle)
             repeller(k.b_transit),
             repeller(in_order[s].f_transit),
             repeller(in_order[s+1].f_transit),
-            69, 1/21
+            69, 1/21, 4e-3
           )
         )
       end
@@ -231,7 +231,7 @@ function foliage(a::Cocycle)
             repeller(h.f_transit),
             repeller(out_order[s+1].b_transit),
             repeller(out_order[s].b_transit),
-            69, 1/21
+            69, 1/21, 4e-3
           )
         )
       end

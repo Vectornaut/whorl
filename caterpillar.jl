@@ -61,6 +61,6 @@ function caterpillar_pics(angle_offset::Interval)
   fol = compose(context(), foliage(a), stroke("plum"), linewidth(0.1))
   
   # print outputs
-  draw(PDF("laminated.pdf", 7cm, 7cm), compose(disk, lam))
-  draw(PDF("foliated.pdf", 7cm, 7cm), compose(disk, lam, fol))
+  draw(SVG("laminated.svg", 7cm, 7cm), compose(disk, lam))
+  draw(SVG("foliated.svg", 7cm, 7cm), compose(disk, lam, fol))
 end

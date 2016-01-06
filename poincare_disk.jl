@@ -74,7 +74,7 @@ end
 # draw an arc of a horocycle at osc, starting at the geodesic osc -- a and
 # ending at the geodesic osc -- b, at distance _height_ from the edge of the
 # orthic triangle
-function horoarc(osc::Number, a::Number, b::Number, height::Number)
+function horoarc(osc::Number, a::Number, b::Number, height::Number, eps::Number = 1e-2)
   # find the tail of the desired arc on the standard triangle ∞, 0, 1
   std_tail = 1im * exp(height)
   
@@ -86,25 +86,27 @@ function horoarc(osc::Number, a::Number, b::Number, height::Number)
   
   # apply the mobius transformation to get the desired arc on the triangle
   # osc, a, b
-  arc(
-    möbius_map(m, std_tail),
-    möbius_map(m, std_tail + 1),
-    möbius_deriv(m, std_tail)
-  )
+  tail = möbius_map(m, std_tail)
+  head = möbius_map(m, std_tail + 1)
+  if abs2(head - tail) > eps*eps
+    return arc(tail, head, möbius_deriv(m, std_tail))
+  else
+    return compose(context())
+  end
 end
 
 # foliate the the osc corner of the triangle osc, a, b using _cnt_ evenly spaced
 # horocycles
-horoleaves(osc::Number, a::Number, b::Number, cnt::Integer, spacing::Number) =
-  compose(context(), [horoarc(osc, a, b, n*spacing) for n in 0:(cnt - 1)]...)
+horoleaves(osc::Number, a::Number, b::Number, cnt::Integer, spacing::Number, eps::Number = 1e-2) =
+  compose(context(), [horoarc(osc, a, b, n*spacing, eps) for n in 0:(cnt - 1)]...)
 
 # draw a triangle foliated by horocycles
-horotriangle(osc::Number, a::Number, b::Number, cnt::Integer, spacing::Number) =
+horotriangle(osc::Number, a::Number, b::Number, cnt::Integer, spacing::Number, eps::Number = 1e-2) =
   compose(
     context(),
-    horoleaves(osc, a, b, cnt, spacing),
-    horoleaves(a, b, osc, cnt, spacing),
-    horoleaves(b, osc, a, cnt, spacing),
+    horoleaves(osc, a, b, cnt, spacing, eps),
+    horoleaves(a, b, osc, cnt, spacing, eps),
+    horoleaves(b, osc, a, cnt, spacing, eps),
   )
 
 # === orbit drawing
@@ -115,12 +117,15 @@ function geodesic_orbit(
   head::Number,
   sym,
   depth::Integer,
+  eps::Number = 1e-2,
   last_sym = nothing
 )
   orbit = []
   
-  # draw the geodesic
-  push!(orbit, geodesic(tail, head))
+  # draw the geodesic, if it's long enough to bother with
+  if abs2(head - tail) > eps*eps
+    push!(orbit, geodesic(tail, head))
+  end
   
   # if we're going deeper into the orbit, apply the generators and their
   # inverses and recurse
@@ -130,14 +135,14 @@ function geodesic_orbit(
       if last_sym != -s
         f_head = möbius_map(sym[s], head)
         f_tail = möbius_map(sym[s], tail)
-        push!(orbit, geodesic_orbit(f_tail, f_head, sym, depth - 1, s))
+        push!(orbit, geodesic_orbit(f_tail, f_head, sym, depth - 1, eps, s))
       end
       
       # apply inverse generator
       if last_sym != s
         b_head = möbius_map(inv(sym[s]), head)
         b_tail = möbius_map(inv(sym[s]), tail)
-        push!(orbit, geodesic_orbit(b_tail, b_head, sym, depth - 1, -s))
+        push!(orbit, geodesic_orbit(b_tail, b_head, sym, depth - 1, eps, -s))
       end
     end
   end
