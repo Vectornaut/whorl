@@ -204,7 +204,7 @@ function lamination(a::Cocycle, sym=nothing, depth=0)
   
   # ------
   
-  out_order = sort(a.blocks, by=block -> block.out_left)
+  out_order = sort(a.blocks, by=bl -> bl.out_left)
   for h in out_order
     for s in 1:(length(out_order) - 1)
       if !missed_connection(h, out_order[s]) && !missed_connection(h, out_order[s+1])
@@ -215,7 +215,7 @@ function lamination(a::Cocycle, sym=nothing, depth=0)
             repeller(out_order[s+1].b_transit),
             repeller(out_order[s].b_transit),
             50,
-            sym,
+            map(inv, sym),
             depth
           )
         )

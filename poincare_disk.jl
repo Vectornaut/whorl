@@ -154,13 +154,13 @@ function triangle_orbit(
   
   # draw the horocycle foliation
   push!(orbit, horoleaves(c, a, b, density))
-  push!(orbit, horoleaves(a, b, c, density))
-  push!(orbit, horoleaves(b, c, a, density))
+  ##push!(orbit, horoleaves(a, b, c, density))
+  ##push!(orbit, horoleaves(b, c, a, density))
   
   # draw the sides
-  push!(orbit, geodesic(c, a))
-  push!(orbit, geodesic(a, b))
-  push!(orbit, geodesic(b, c))
+  ##push!(orbit, compose(context(), stroke("orange"), geodesic(c, a)))
+  push!(orbit, compose(context(), stroke("green"), geodesic(a, b)))
+  push!(orbit, compose(context(), stroke("violet"), geodesic(b, c)))
   
   # if we're going deeper into the orbit, apply the generators and their
   # inverses and recurse
