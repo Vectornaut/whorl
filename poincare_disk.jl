@@ -72,42 +72,39 @@ function arc(tail::Number, head::Number, dir::Number)
 end
 
 # draw an arc of a horocycle at osc, starting at the geodesic osc -- a and
-# ending at the geodesic osc -- b. as the height parameter varies from 1 to 0,
-# the arc shrinks from an edge of the orthic triangle down to the point osc.
+# ending at the geodesic osc -- b, at distance _height_ from the edge of the
+# orthic triangle
 function horoarc(osc::Number, a::Number, b::Number, height::Number)
-  # find head, tail, and direction of the desired arc on the standard triangle
-  # 1, cis(π/3), cis(2π/3)
-  std_dir = cis(π/2 + height*π/6)
-  std_head = 1 + sqrt(3)*(1im + conj(std_dir))
-  std_tail = 1 + sqrt(3)*(-1im + std_dir)
+  # find the tail of the desired arc on the standard triangle ∞, 0, 1
+  std_tail = 1im * exp(height)
   
-  # build the möbius transformation
-  #  1         --> osc     1         -->  0 --> osc
-  #  cis(2π/3) --> a    =  cis(2π/3) -->  1 --> a
-  #  cis(4π/3) --> b       cis(4π/3) --> -1 --> b
-  m = [[2a*b - osc*(a + b), a + b - 2osc] [osc*(b - a), b - a]] * [[-1im, sqrt(3)] [1im, sqrt(3)]]
+  # write down the möbius transformation
+  #  ∞ --> osc
+  #  0 --> a
+  #  1 --> b
+  m = [[osc*(b - a), b - a] [a*(osc - b), osc - b]]
   
   # apply the mobius transformation to get the desired arc on the triangle
   # osc, a, b
   arc(
     möbius_map(m, std_tail),
-    möbius_map(m, std_head),
-    möbius_deriv(m, std_tail) * std_dir
+    möbius_map(m, std_tail + 1),
+    möbius_deriv(m, std_tail)
   )
 end
 
-# foliate the the osc corner of the triangle osc, a, b using the specified
-# number of horocycles, _density_
-horoleaves(osc::Number, a::Number, b::Number, density::Integer) =
-  compose(context(), [horoarc(osc, a, b, h/density) for h in 1:density]...)
+# foliate the the osc corner of the triangle osc, a, b using _cnt_ evenly spaced
+# horocycles
+horoleaves(osc::Number, a::Number, b::Number, cnt::Integer, spacing::Number) =
+  compose(context(), [horoarc(osc, a, b, n*spacing) for n in 0:(cnt - 1)]...)
 
 # draw a triangle foliated by horocycles
-horotriangle(osc::Number, a::Number, b::Number, density::Integer) =
+horotriangle(osc::Number, a::Number, b::Number, cnt::Integer, spacing::Number) =
   compose(
     context(),
-    horoleaves(osc, a, b, density),
-    horoleaves(a, b, osc, density),
-    horoleaves(b, osc, a, density),
+    horoleaves(osc, a, b, cnt, spacing),
+    horoleaves(a, b, osc, cnt, spacing),
+    horoleaves(b, osc, a, cnt, spacing),
   )
 
 # === orbit drawing

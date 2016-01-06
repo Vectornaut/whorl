@@ -214,7 +214,7 @@ function foliage(a::Cocycle)
             repeller(k.b_transit),
             repeller(in_order[s].f_transit),
             repeller(in_order[s+1].f_transit),
-            50
+            69, 1/21
           )
         )
       end
@@ -231,7 +231,7 @@ function foliage(a::Cocycle)
             repeller(h.f_transit),
             repeller(out_order[s+1].b_transit),
             repeller(out_order[s].b_transit),
-            50
+            69, 1/21
           )
         )
       end
