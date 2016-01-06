@@ -1,4 +1,4 @@
-using ValidatedNumerics
+using ValidatedNumerics, Colors
 
 include("interval_exchange.jl")
 include("regular.jl")
@@ -41,9 +41,9 @@ function twisted_caterpillar(angle::Interval)
   caterpillar_cocycle(angle, m4, m5, m7, m8, m9, a, b)
 end
 
-# === testing
+# === output
 
-function caterpillar_pics(angle_offset::Interval)
+function caterpillar_pics(angle_offset::Interval = @interval(1/11); svg = false)
   # set up cocycle
   a = twisted_caterpillar(@interval(3π/4) + angle_offset)
   for h in a.blocks
@@ -57,10 +57,20 @@ function caterpillar_pics(angle_offset::Interval)
   disk = compose(context(), circle(), stroke("black"), fill(nothing), linewidth(0.4mm))
   
   # draw lamination and foliation
-  lam = compose(context(), lamination(a, generators(2), 3), stroke("black"), linewidth(0.1mm))
-  fol = compose(context(), foliage(a), stroke("plum"), linewidth(0.1))
+  clay = RGB(161/255, 149/255, 126/255)
+  #silt = RGB(204/255, 193/255, 174/255)
+  amethyst = RGB(204/255, 125/255, 189/255)
+  lam = compose(context(), lamination(a, generators(2), 3), stroke(clay), linewidth(0.1mm))
+  fol = compose(context(), foliage(a), stroke(amethyst), linewidth(0.1))
   
   # print outputs
-  draw(SVG("laminated.svg", 7cm, 7cm), compose(disk, lam))
-  draw(SVG("foliated.svg", 7cm, 7cm), compose(disk, lam, fol))
+  if svg
+    lam_file = SVG("laminated.svg", 7cm, 7cm)
+    fol_file = SVG("foliated.svg", 7cm, 7cm)
+  else
+    lam_file = PDF("laminated.pdf", 7cm, 7cm)
+    fol_file = PDF("foliated.pdf", 7cm, 7cm)
+  end
+  draw(lam_file, compose(context(), disk, lam))
+  draw(fol_file, compose(context(), disk, lam, fol))
 end
