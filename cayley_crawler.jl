@@ -1,20 +1,22 @@
 module Testing
 export test_crawler
 
-const CLIMBER = 0
+const ROOT     =  3
+const CLIMBER  =  0
 const L_RUNNER = -1
-const R_RUNNER = 1
-const CORNER = 2
+const R_RUNNER =  1
+const CORNER   =  2
 
 type CayleyCrawler
   # the index of the generator represented by this edge of the Cayley graph,
-  # oriented toward the root of the spanning tree
-  down::Integer
+  # oriented toward the root of the spanning tree (relevant in all modes but
+  # root)
+  down::Union{Integer, Void}
   
   # growth parameters
-  mode::Integer   # specifies branching behavior
-  range::Integer  # how far to run (relevant in the runner modes)
-  ascent::Integer # how high to climb
+  mode::Integer               # specifies branching behavior
+  range::Union{Integer, Void} # how far to run (relevant in the runner modes)
+  ascent::Integer             # how high to climb
   
   # the next edges out in the spanning tree
   shoots::Array{CayleyCrawler}
@@ -23,11 +25,15 @@ type CayleyCrawler
   # the root tile of the spanning tree
   home
   
-  CayleyCrawler(j, k, up, ascent) = CayleyCrawler(j, k, up, CLIMBER, 0, ascent)
+  CayleyCrawler(j, k, ascent) = CayleyCrawler(j, k, nothing, ROOT, nothing, ascent)
   
   function CayleyCrawler(j, k, up, mode, range, ascent)
     # set parameters
-    down = (up+j) % (2j)
+    if mode != ROOT
+      down = (up+j) % (2j)
+    else
+      down = nothing
+    end
     me = new(
       down,   # down
       mode,   # mode
@@ -38,14 +44,19 @@ type CayleyCrawler
     )
     
     # sprout new edges
-    if mode == CLIMBER
+    if mode == ROOT
+      # the root sprouts climbers in all directions
+      for m in 0:(2j - 1)
+        push!(me.shoots, CayleyCrawler(j, k, m, CLIMBER, nothing, ascent))
+      end
+    elseif mode == CLIMBER
       # a climber sprouts a left-runner in the left position, a right-runner in
       # the right position, and more climbers in between
       push!(me.shoots, CayleyCrawler(j, k, down-1, L_RUNNER, k-2, ascent))
       push!(me.shoots, CayleyCrawler(j, k, down+1, R_RUNNER, k-2, ascent))
       if ascent > 1
         for m in 2:(2j - 2)
-          push!(me.shoots, CayleyCrawler(j, k, down+m, CLIMBER, 0, ascent-1))
+          push!(me.shoots, CayleyCrawler(j, k, down+m, CLIMBER, nothing, ascent-1))
         end
       end
     elseif mode == L_RUNNER
@@ -56,14 +67,14 @@ type CayleyCrawler
         push!(me.shoots, CayleyCrawler(j, k, down-1, L_RUNNER, range-1, ascent))
       else
         # if it's at the end of its range, it sprouts a corner in the left position
-        push!(me.shoots, CayleyCrawler(j, k, down-1, CORNER, 0, ascent))
+        push!(me.shoots, CayleyCrawler(j, k, down-1, CORNER, nothing, ascent))
       end
       
       # it sprouts a right-runner in the right position, and climbers in between
       if ascent > 1
         push!(me.shoots, CayleyCrawler(j, k, down+1, R_RUNNER, k-2, ascent-1))
         for m in 2:(2j - 2)
-          push!(me.shoots, CayleyCrawler(j, k, down+m, CLIMBER, 0, ascent-1))
+          push!(me.shoots, CayleyCrawler(j, k, down+m, CLIMBER, nothing, ascent-1))
         end
       end
     elseif mode == R_RUNNER
@@ -79,7 +90,7 @@ type CayleyCrawler
       if ascent > 1
         push!(me.shoots, CayleyCrawler(j, k, down-1, L_RUNNER, k-2, ascent-1))
         for m in 2:(2*j - 2)
-          push!(me.shoots, CayleyCrawler(j, k, down+m, CLIMBER, 0, ascent-1))
+          push!(me.shoots, CayleyCrawler(j, k, down+m, CLIMBER, nothing, ascent-1))
         end
       end
     elseif mode == CORNER
@@ -90,7 +101,7 @@ type CayleyCrawler
         push!(me.shoots, CayleyCrawler(j, k, down-2, L_RUNNER, k-2, ascent-1))
         push!(me.shoots, CayleyCrawler(j, k, down+1, R_RUNNER, k-2, ascent-1))
         for m in 2:(2j - 3)
-          push!(me.shoots, CayleyCrawler(j, k, down+m, CLIMBER, 0, ascent-1))
+          push!(me.shoots, CayleyCrawler(j, k, down+m, CLIMBER, nothing, ascent-1))
         end
       end
     end
@@ -100,13 +111,22 @@ type CayleyCrawler
   end
 end
 
-function set_home!(crawler::CayleyCrawler, base, transit, list=nothing)
-  crawler.home = base * transit[crawler.down+1]
-  if list != nothing
-    push!(list, crawler.home)
+function find_home!(crawler::CayleyCrawler, transit, base=eye(2); basket=nothing)
+  # find our way home
+  if crawler.mode == ROOT
+    crawler.home = base
+  else
+    crawler.home = base * transit[crawler.down+1]
   end
+  
+  # throw it in the basket, if one was provided
+  if basket != nothing
+    push!(basket, crawler.home)
+  end
+  
+  # tell our shoots to find their ways home
   for sh in crawler.shoots
-    set_home!(sh, crawler.home, transit, list)
+    find_home!(sh, transit, crawler.home, basket=basket)
   end
 end
 
@@ -131,17 +151,15 @@ function test_crawler()
   transit = [transit; [inv(t) for t in transit]]
   
   list = []
-  crawler = [CayleyCrawler(4, 4, m, 2) for m in 0:7]
-  for c in crawler
-    set_home!(c, eye(2), transit, list)
-  end
+  crawler = CayleyCrawler(4, 4, 2)
+  find_home!(crawler, transit, basket=list)
   
   glass = RGBA(0.0, 0.8, 0.6, 0.2)
   
   pic = compose(
     context(),
     (context(0.05, 0.05, 0.9, 0.9),
-      [(context(), scatter(c, 0), fill(glass)) for c in crawler]...,
+      (context(), scatter(crawler, 0), fill(glass)),
       (context(), circle(), fill("white"))
     ),
     (context(), rectangle(), fill("gainsboro"))
