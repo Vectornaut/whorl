@@ -30,7 +30,7 @@ function caterpillar_cocycle(angle::Interval, m4, m5, m7, m8, m9, a, b)
 end
 
 function twisted_caterpillar(angle::Interval)
-  g = generators(2)
+  g = Regular.generators(2)
   m4 = g[4]
   m5 = g[3]
   m7 = g[2]
@@ -60,7 +60,7 @@ function caterpillar_pics(angle_offset::Interval = @interval(1/11); svg = false)
   clay = RGB(161/255, 149/255, 126/255)
   #silt = RGB(204/255, 193/255, 174/255)
   amethyst = RGB(204/255, 125/255, 189/255)
-  lam = compose(context(), lamination(a, generators(2), 3), stroke(clay), linewidth(0.1mm))
+  lam = compose(context(), lamination(a, Regular.generators(2), 3), stroke(clay), linewidth(0.1mm))
   fol = compose(context(), foliage(a), stroke(amethyst), linewidth(0.1))
   
   # print outputs
