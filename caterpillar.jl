@@ -2,6 +2,7 @@ using ValidatedNumerics, Colors
 
 include("interval_exchange.jl")
 include("regular.jl")
+include("color_scheme.jl")
 
 tilt(x::Integer, y::Integer) = ((10*x + 7*y)//149, (-7*x + 10*y)//149)
 
@@ -54,23 +55,20 @@ function caterpillar_pics(angle_offset::Interval = @interval(1/11); svg = false)
   end
   
   # draw poincaré disk
-  disk = compose(context(), circle(), stroke("black"), fill(nothing), linewidth(0.4mm))
+  disk = compose(context(), circle(), fill(disk_ink), linewidth(0.4mm))
   
   # draw lamination and foliation
-  clay = RGB(161/255, 149/255, 126/255)
-  #silt = RGB(204/255, 193/255, 174/255)
-  amethyst = RGB(204/255, 125/255, 189/255)
-  lam = compose(context(), lamination(a, Regular.generators(2), 3), stroke(clay), linewidth(0.1mm))
-  fol = compose(context(), foliage(a), stroke(amethyst), linewidth(0.1))
+  lam = compose(context(), lamination(a, Regular.generators(2), 2), stroke(vert_ink), linewidth(0.25pt))
+  fol = compose(context(), foliage(a), stroke(hor_ink), linewidth(0.25pt))
   
   # print outputs
   if svg
-    lam_file = SVG("laminated.svg", 7cm, 7cm)
-    fol_file = SVG("foliated.svg", 7cm, 7cm)
+    lam_file = SVG("laminated.svg", 5.2cm, 5.2cm)
+    fol_file = SVG("foliated.svg", 5.2cm, 5.2cm)
   else
-    lam_file = PDF("laminated.pdf", 7cm, 7cm)
-    fol_file = PDF("foliated.pdf", 7cm, 7cm)
+    lam_file = PDF("cpt-laminated.pdf", 5.2cm, 5.2cm)
+    fol_file = PDF("cpt-foliated.pdf", 5.2cm, 5.2cm)
   end
-  draw(lam_file, compose(context(), disk, lam))
-  draw(fol_file, compose(context(), disk, lam, fol))
+  draw(lam_file, compose(context(), lam, disk))
+  draw(fol_file, compose(context(), lam, fol, disk))
 end
