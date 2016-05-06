@@ -72,6 +72,20 @@ function torus_edges(h, depth)
   )
 end
 
+function torus_chart(h)
+  p = torus_punks(h)
+  sym = torus_sym(h)
+  
+  return compose(
+    context(),
+    geodesic(p[3], p[4]),
+    geodesic(p[1], p[4]),
+    geodesic(p[1], p[3]),
+    geodesic(p[1], p[2]),
+    geodesic(p[3], p[2])
+  )
+end
+
 function torus_foliage(h, depth)
   p = torus_punks(h)
   sym = torus_sym(h)
@@ -84,7 +98,7 @@ function torus_foliage(h, depth)
 end
 
 function triangle_foliage()
-  p = [-im*cis(2π/3*k) for k in 1:3]
+  p = [im*cis(2π/3*k) for k in 1:3]
   return compose(
     context(),
     compose(
@@ -117,6 +131,9 @@ function torus_pics()
   lam_fol = compose(context(), torus_edges(h_fol, 5), stroke(vert_ink), linewidth(0.75pt))
   fol = compose(context(), torus_foliage(h_fol, 5), stroke(hor_ink), linewidth(0.75pt))
   
+  # draw torus chart
+  chart = compose(context(), torus_chart(h_new), stroke(vert_ink), linewidth(0.75pt))
+  
   # draw guides
   gl = compose(context(), guides(h_old, h_old), stroke("red"), linewidth(0.25pt))
   gl_shift = compose(context(), guides(h_old, h_new), stroke("red"), linewidth(0.25pt))
@@ -125,9 +142,11 @@ function torus_pics()
   lam_file = SVG("punk-lam-orig_raw.svg", 5.2cm, 5.2cm)
   lam_shift_file = SVG("punk-lam-shifted_raw.svg", 5.2cm, 5.2cm)
   fol_file = SVG("punk-fol_raw.svg", 5.2cm, 5.2cm)
+  chart_file = SVG("chart-shifted_raw.svg", 5.2cm, 5.2cm)
   tri_fol_file = SVG("tri-fol_raw.svg", 5.2cm, 5.2cm)
   draw(lam_file, compose(context(), gl, lam_orig, disk))
   draw(lam_shift_file, compose(context(), gl_shift, lam_shift, disk))
   draw(fol_file, compose(context(), lam_fol, fol, disk))
   draw(tri_fol_file, compose(context(), triangle_foliage(), disk))
+  draw(chart_file, compose(context(), gl_shift, chart, disk))
 end
