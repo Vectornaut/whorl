@@ -1,7 +1,7 @@
-using ValidatedNumerics, Colors
-
 include("interval_exchange.jl")
 include("regular.jl")
+
+using ValidatedNumerics, Compose, Colors, IntervalExchange
 
 tilt(x::Integer, y::Integer) = ((10*x + 7*y)//149, (-7*x + 10*y)//149)
 

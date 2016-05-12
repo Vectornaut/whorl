@@ -1,6 +1,10 @@
-using ValidatedNumerics, Compose
+module IntervalExchange
 
 include("poincare_disk.jl")
+
+using ValidatedNumerics, Compose
+
+export Cocycle, twostep, lamination, foliage
 
 # === exchangers
 
@@ -176,7 +180,7 @@ function twostep{R <: AbstractInterval}(a::Cocycle{R})
   Cocycle(new_blocks)
 end
 
-function lamination(a::Cocycle, sym, depth=0)
+function lamination{R <: AbstractInterval}(a::Cocycle{R}, sym, depth=0)
   lam = Context[]
   
   for k in a.blocks
@@ -239,4 +243,6 @@ function foliage(a::Cocycle)
   end
   
   compose(context(), triangles...)
+end
+
 end
