@@ -18,11 +18,11 @@ function proj{T <: Integer}(angle::Interval, pt::Tuple{T, T})
   tilt_pt[1] - (tilt_up[1]/tilt_up[2])*tilt_pt[2]
 end
 
-function caterpillar_cocycle(angle::Interval, m4, m5, m7, m8, m9, a, b)
+function caterpillar_cocycle{R <: AbstractInterval}(angle::R, m4, m5, m7, m8, m9, a, b)
   # branch points of a presentation of a genus-five surface with four
   # singularities
   branch_pts = [(0, 1), (1, 1), (2, 2), (2, 3), (3, 3), (4, 4), (5, 4), (6, 5), (7, 5), (7, 6), (8, 7), (9, 7), (10, 7)]
-  breaks = Interval[proj(angle, pt) for pt in branch_pts]
+  breaks = R[proj(angle, pt) for pt in branch_pts]
   
   f_transit = Array[b*inv(m9)*a, b*inv(m8)*a, b*inv(m7)*a, m9, m8, m7, inv(a)*b, m5, m4, inv(a)*inv(b), inv(a)*inv(m5)*inv(b), inv(a)*inv(m4)*inv(b), a*inv(b)]
   f_shuffle = [7, 12, 11, 10, 9, 8, 13, 6, 5, 4, 3, 2, 1]
