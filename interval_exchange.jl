@@ -1,8 +1,8 @@
-module IntervalExchange
-
 include("poincare_disk.jl")
 
-using ValidatedNumerics, Compose
+module IntervalExchange
+
+using ValidatedNumerics, Compose, PoincareDisk
 
 export Cocycle, twostep, lamination, foliage
 
