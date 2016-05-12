@@ -1,6 +1,10 @@
-using ValidatedNumerics, Compose
-
 include("poincare_disk.jl")
+
+module IntervalExchange
+
+using ValidatedNumerics, Compose, PoincareDisk
+
+export Cocycle, twostep, lamination, foliage
 
 # === exchangers
 
@@ -8,18 +12,18 @@ include("poincare_disk.jl")
 # "in" block to points in an "out" block by translation, discarding points that
 # don't belong to the in block. it also applies a transition map to the
 # local system sections above the block.
-type Exchanger
+type Exchanger{R <: AbstractInterval}
   # the endpoints of the in and out blocks, specified using interval arithmetic.
   # the differences in_right - in_left and out_right - out_left will always be
   # equal, because the in block is mapped to the out block by translation.
-  in_left::Interval
-  in_right::Interval
-  out_left::Interval
-  out_right::Interval
+  in_left::R
+  in_right::R
+  out_left::R
+  out_right::R
   
   # the translation that sends the in block to the out block, always equal to
   # out_left - in_left
-  f_shift::Interval
+  f_shift::R
   
   # f_transit is the local system transition you pick up going forward through
   # the interval, and b_transit is the transition you pick up going backward.
@@ -58,7 +62,7 @@ end
 
 # compose the exchangers h and k, returning nothing if the out block of k
 # misses the in block of h
-function pipe(h::Exchanger, k::Exchanger)
+function pipe{R <: AbstractInterval}(h::Exchanger{R}, k::Exchanger{R})
   # if out block of k misses the in block of h, return nothing
   if missed_connection(h, k)
     return nothing
@@ -84,7 +88,7 @@ function pipe(h::Exchanger, k::Exchanger)
     new_right += h.in_right - k.out_right
   end
   
-  Exchanger(
+  Exchanger{R}(
     new_left,
     new_right,
     h.f_shift + k.f_shift,
@@ -103,17 +107,17 @@ end
 
 # === interval exchange cocycles
 
-type Cocycle
+type Cocycle{R <: AbstractInterval}
   # we're using interval arithmetic to keep track of endpoints, so the intervals
   # of the interval exchange are called blocks to avoid confusion
-  blocks::Array{Exchanger, 1}
+  blocks::Array{Exchanger{R}, 1}
 end
 
 # if you label the blocks 1, 2, 3... from left to right, apply the interval
 # exchange, and read off the labels from left to right again, you get the list
 # f_shuffle
 function Cocycle{
-  R <: Interval, S <: Any, T <: Integer
+  R <: AbstractInterval, S <: Any, T <: Integer
 }(
   in_breaks::Array{R, 1}, f_transit::Array{S, 1}, f_shuffle::Array{T, 1}
 )
@@ -140,11 +144,11 @@ function Cocycle{
   end
   
   # build the interval exchange, block by block
-  blocks = Exchanger[]
+  blocks = Exchanger{R}[]
   for (t, s) in enumerate(b_shuffle)
     push!(
       blocks,
-      Exchanger(
+      Exchanger{R}(
         pad_in_breaks[t],
         pad_in_breaks[t+1],
         pad_out_breaks[s] - pad_in_breaks[t],
@@ -160,8 +164,8 @@ end
 # compose an interval exchange cocyle with itself, roughly doubling the number
 # of blocks (if the original interval exchange has n blocks, the new one will
 # have 2n - 1)
-function twostep(a::Cocycle)
-  new_blocks = Exchanger[]
+function twostep{R <: AbstractInterval}(a::Cocycle{R})
+  new_blocks = Exchanger{R}[]
   for k in a.blocks
     # the number of comparisons here could be cut down significantly by taking
     # advantage of the fact that we know where the out block of k is, and
@@ -176,7 +180,7 @@ function twostep(a::Cocycle)
   Cocycle(new_blocks)
 end
 
-function lamination(a::Cocycle, sym, depth=0)
+function lamination{R <: AbstractInterval}(a::Cocycle{R}, sym, depth=0)
   lam = Context[]
   
   for k in a.blocks
@@ -239,4 +243,6 @@ function foliage(a::Cocycle)
   end
   
   compose(context(), triangles...)
+end
+
 end

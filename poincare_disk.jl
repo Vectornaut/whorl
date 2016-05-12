@@ -1,4 +1,8 @@
+module PoincareDisk
+
 using Compose
+
+export repeller, horotriangle, geodesic_orbit
 
 # === möbius transformations
 
@@ -148,4 +152,6 @@ function geodesic_orbit(
   end
   
   compose(context(), orbit...)
+end
+
 end
