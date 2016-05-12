@@ -119,7 +119,7 @@ function Cocycle{
 )
   # find the lengths of the in blocks
   blocklengths = R[]
-  last_b = @interval(0)
+  last_b = 0
   for b in in_breaks
     push!(blocklengths, b - last_b)
     last_b = b
@@ -127,11 +127,11 @@ function Cocycle{
   
   # add the break at zero
   pad_in_breaks = copy(in_breaks)
-  unshift!(pad_in_breaks, @interval(0))
+  unshift!(pad_in_breaks, 0)
   
   # find the breaks between the out blocks
   pad_out_breaks = cumsum([blocklengths[s] for s in f_shuffle])
-  unshift!(pad_out_breaks, @interval(0))
+  unshift!(pad_out_breaks, 0)
   
   # invert the permutation of the blocks
   b_shuffle = Array(T, length(f_shuffle))
