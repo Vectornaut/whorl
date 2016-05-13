@@ -49,10 +49,14 @@ function caterpillar_pics{R <: AbstractInterval}(angle_offset::R = @interval(1/1
   for h in a.blocks
     println(h)
   end
-  for i in 1:3
-    a = twostep(a)
+  for i in 1:8
+    a = @profile(twostep(a))
+    println("~~~~~~~~~")
+    Profile.print(maxdepth=8)
+    println("---------")
   end
   
+  #=
   # draw poincaré disk
   disk = compose(context(), circle(), stroke("black"), fill(nothing), linewidth(0.4mm))
   
@@ -73,4 +77,5 @@ function caterpillar_pics{R <: AbstractInterval}(angle_offset::R = @interval(1/1
   end
   draw(lam_file, compose(context(), disk, lam))
   draw(fol_file, compose(context(), disk, lam, fol))
+  =#
 end
