@@ -1,6 +1,6 @@
 module Crawl
 
-export CayleyCrawler, find_home!, fan_out
+export CayleyCrawler, findhome!, fanout
 
 const ROOT     =  3
 const CLIMBER  =  0
@@ -112,7 +112,7 @@ type CayleyCrawler
   end
 end
 
-function find_home!(crawler::CayleyCrawler, transit, base=eye(2))
+function findhome!(crawler::CayleyCrawler, transit, base=eye(2))
   # find our way home
   if crawler.mode == ROOT
     crawler.home = base
@@ -122,15 +122,15 @@ function find_home!(crawler::CayleyCrawler, transit, base=eye(2))
   
   # tell our shoots to find their ways home
   for sh in crawler.shoots
-    find_home!(sh, transit, crawler.home)
+    findhome!(sh, transit, crawler.home)
   end
 end
 
-fan_out(f::Function, crawler::CayleyCrawler) =
+fanout(f::Function, crawler::CayleyCrawler) =
   if isempty(crawler.shoots)
     return [f(crawler.home)]
   else
-    return vcat(f(crawler.home), [fan_out(f, sh) for sh in crawler.shoots]...)
+    return vcat(f(crawler.home), [fanout(f, sh) for sh in crawler.shoots]...)
   end
 
 end
