@@ -56,7 +56,7 @@ function caterpillar_pics{R <: AbstractInterval}(angle_offset::R = @interval(1/1
     println(h)
   end
   println("by out ---------")
-  for i in 1:8
+  for i in 1:3
     a = @time(twostep(a))
     println("$(length(a.blocks_by_in)) blocks by in")
     println("$(length(a.blocks_by_out)) blocks by out")
@@ -67,28 +67,25 @@ function caterpillar_pics{R <: AbstractInterval}(angle_offset::R = @interval(1/1
     =#
   end
   
-  #=
   # draw poincaré disk
   disk = compose(context(), circle(), stroke("black"), fill(nothing), linewidth(0.4mm))
   
   # draw lamination and foliation
   clay = RGB(161/255, 149/255, 126/255)
-  #silt = RGB(204/255, 193/255, 174/255)
   amethyst = RGB(204/255, 125/255, 189/255)
   lam = compose(context(), lamination(a, Regular.generators(2), 3), stroke(clay), linewidth(0.1mm))
-  fol = compose(context(), foliage(a), stroke(amethyst), linewidth(0.1))
+  ##fol = compose(context(), foliage(a), stroke(amethyst), linewidth(0.1))
   
   # print outputs
   if svg
     lam_file = SVG("laminated.svg", 7cm, 7cm)
-    fol_file = SVG("foliated.svg", 7cm, 7cm)
+    ##fol_file = SVG("foliated.svg", 7cm, 7cm)
   else
     lam_file = PDF("laminated.pdf", 7cm, 7cm)
-    fol_file = PDF("foliated.pdf", 7cm, 7cm)
+    ##fol_file = PDF("foliated.pdf", 7cm, 7cm)
   end
   draw(lam_file, compose(context(), disk, lam))
-  draw(fol_file, compose(context(), disk, lam, fol))
-  =#
+  ##draw(fol_file, compose(context(), disk, lam, fol))
 end
 
 end

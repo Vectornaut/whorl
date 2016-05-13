@@ -212,18 +212,26 @@ end
 function lamination{R <: AbstractInterval}(a::Cocycle{R}, sym, depth=0)
   lam = Context[]
   
-  for k in a.blocks
-    for h in a.blocks
-      if !missed_connection(h, k)
-        push!(
-          lam,
-          geodesic_orbit(
-            repeller(k.b_transit),
-            repeller(h.f_transit),
-            sym, depth
-          )
-        )
-      end
+  s = 1
+  t = 1
+  while true
+    h = a.blocks_by_in[s]
+    k = a.blocks_by_out[t]
+    push!(
+      lam,
+      geodesic_orbit(
+        repeller(k.b_transit),
+        repeller(h.f_transit),
+        sym, depth
+      )
+    )
+    
+    if s == length(a.blocks_by_in) && t == length(a.blocks_by_out)
+      break
+    elseif pre_hanging(h, k)
+      s += 1
+    else
+      t += 1
     end
   end
   
