@@ -1,7 +1,9 @@
 include("interval_exchange.jl")
 include("regular.jl")
 
-using ValidatedNumerics, Compose, Colors, IntervalExchange
+module Testing
+
+using ValidatedNumerics, Compose, Colors, IntervalExchange, Regular
 
 tilt(x::Integer, y::Integer) = ((10*x + 7*y)//149, (-7*x + 10*y)//149)
 
@@ -46,14 +48,23 @@ end
 function caterpillar_pics{R <: AbstractInterval}(angle_offset::R = @interval(1/11); svg = false)
   # set up cocycle
   a = twisted_caterpillar(@interval(3π/4) + angle_offset)
-  for h in a.blocks
+  for h in a.blocks_by_in
     println(h)
   end
+  println("by in ---------")
+  for h in a.blocks_by_out
+    println(h)
+  end
+  println("by out ---------")
   for i in 1:8
-    a = @profile(twostep(a))
-    println("~~~~~~~~~")
+    a = @time(twostep(a))
+    println("$(length(a.blocks_by_in)) blocks by in")
+    println("$(length(a.blocks_by_out)) blocks by out")
+    println("$i ~~~~~~~~~")
+    #=
     Profile.print(maxdepth=8)
     println("---------")
+    =#
   end
   
   #=
@@ -78,4 +89,6 @@ function caterpillar_pics{R <: AbstractInterval}(angle_offset::R = @interval(1/1
   draw(lam_file, compose(context(), disk, lam))
   draw(fol_file, compose(context(), disk, lam, fol))
   =#
+end
+
 end

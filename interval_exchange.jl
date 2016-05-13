@@ -50,6 +50,24 @@ type EndpointCollisionException <: Exception
   k::Exchanger
 end
 
+# comparison function for sorting by in block
+in_isless(h::Exchanger, k::Exchanger) =
+  strictprecedes(h.in_left, k.in_left) && strictprecedes(h.in_right, k.in_right)
+
+# comparison function for sorting by out block
+out_isless(h::Exchanger, k::Exchanger) =
+  strictprecedes(h.out_left, k.out_left) && strictprecedes(h.out_right, k.out_right)
+
+# checks whether the out block of k hangs off to the right of the in block of h
+function pre_hanging(h::Exchanger, k::Exchanger)
+  # if we can't tell, throw an exception
+  if !isdisjoint(h.in_right, k.out_right)
+    throw(EndpointCollisionException(h, k))
+  end
+  
+  strictprecedes(h.in_right, k.out_right)
+end
+
 # checks whether the out block of k misses the in block of h
 function missed_connection(h::Exchanger, k::Exchanger)
   # if we can't tell, throw an exception
@@ -110,7 +128,8 @@ end
 type Cocycle{R <: AbstractInterval}
   # we're using interval arithmetic to keep track of endpoints, so the intervals
   # of the interval exchange are called blocks to avoid confusion
-  blocks::Array{Exchanger{R}, 1}
+  blocks_by_in::Array{Exchanger{R}, 1}
+  blocks_by_out::Array{Exchanger{R}, 1}
 end
 
 # if you label the blocks 1, 2, 3... from left to right, apply the interval
@@ -144,10 +163,10 @@ function Cocycle{
   end
   
   # build the interval exchange, block by block
-  blocks = Exchanger{R}[]
+  blocks_by_in = Exchanger{R}[]
   for (t, s) in enumerate(b_shuffle)
     push!(
-      blocks,
+      blocks_by_in,
       Exchanger{R}(
         pad_in_breaks[t],
         pad_in_breaks[t+1],
@@ -158,7 +177,10 @@ function Cocycle{
     )
   end
   
-  Cocycle(blocks)
+  # sort the block list by out block
+  blocks_by_out = [blocks_by_in[s] for s in f_shuffle]
+  
+  Cocycle(blocks_by_in, blocks_by_out)
 end
 
 # compose an interval exchange cocyle with itself, roughly doubling the number
@@ -166,18 +188,25 @@ end
 # have 2n - 1)
 function twostep{R <: AbstractInterval}(a::Cocycle{R})
   new_blocks = Exchanger{R}[]
-  for k in a.blocks
-    # the number of comparisons here could be cut down significantly by taking
-    # advantage of the fact that we know where the out block of k is, and
-    # a.blocks is ordered by location of the in block
-    for h in a.blocks
-      piped = pipe(h, k)
-      if piped != nothing
-        push!(new_blocks, piped)
-      end
+  s = 1
+  t = 1
+  while true
+    h = a.blocks_by_in[s]
+    k = a.blocks_by_out[t]
+    push!(new_blocks, pipe(h, k))
+    
+    if s == length(a.blocks_by_in) && t == length(a.blocks_by_out)
+      break
+    elseif pre_hanging(h, k)
+      s += 1
+    else
+      t += 1
     end
   end
-  Cocycle(new_blocks)
+  
+  new_blocks_by_in = sort(new_blocks, lt=in_isless)
+  new_blocks_by_out = sort(new_blocks, lt=out_isless)
+  Cocycle(new_blocks_by_in, new_blocks_by_out)
 end
 
 function lamination{R <: AbstractInterval}(a::Cocycle{R}, sym, depth=0)

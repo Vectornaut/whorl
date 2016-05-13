@@ -1,0 +1,53 @@
+=== exhaustive search
+
+  0.000438 seconds (2.21 k allocations: 64.313 KB)
+1 ~~~~~~~~~
+  0.000866 seconds (4.30 k allocations: 125.219 KB)
+2 ~~~~~~~~~
+  0.001834 seconds (8.48 k allocations: 247.031 KB)
+3 ~~~~~~~~~
+  0.005392 seconds (16.83 k allocations: 490.563 KB)
+4 ~~~~~~~~~
+  0.010606 seconds (33.53 k allocations: 977.594 KB)
+5 ~~~~~~~~~
+  0.031144 seconds (66.94 k allocations: 1.906 MB)
+6 ~~~~~~~~~
+  0.103774 seconds (133.76 k allocations: 3.808 MB, 10.01% gc time)
+7 ~~~~~~~~~
+  0.193489 seconds (267.39 k allocations: 7.613 MB)
+8 ~~~~~~~~~
+
+=== sort & search
+
+  0.150979 seconds (103.06 k allocations: 4.563 MB)
+25 blocks by in
+25 blocks by out
+1 ~~~~~~~~~
+  0.000555 seconds (4.32 k allocations: 127.641 KB)
+49 blocks by in
+49 blocks by out
+2 ~~~~~~~~~
+  0.001033 seconds (8.50 k allocations: 250.609 KB)
+97 blocks by in
+97 blocks by out
+3 ~~~~~~~~~
+  0.002104 seconds (16.85 k allocations: 496.297 KB)
+193 blocks by in
+193 blocks by out
+4 ~~~~~~~~~
+  0.004174 seconds (33.56 k allocations: 987.922 KB)
+385 blocks by in
+385 blocks by out
+5 ~~~~~~~~~
+  0.009721 seconds (66.97 k allocations: 1.925 MB)
+769 blocks by in
+769 blocks by out
+6 ~~~~~~~~~
+  0.018276 seconds (133.78 k allocations: 3.845 MB)
+1537 blocks by in
+1537 blocks by out
+7 ~~~~~~~~~
+  0.040277 seconds (267.42 k allocations: 7.684 MB, 14.48% gc time)
+3073 blocks by in
+3073 blocks by out
+8 ~~~~~~~~~
