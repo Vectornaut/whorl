@@ -1,7 +1,9 @@
 include("interval_exchange.jl")
+include("poincare_disk.jl")
 include("regular.jl")
+include("cayley_crawler.jl")
 
-using ValidatedNumerics, Compose, Colors, IntervalExchange
+using ValidatedNumerics, Compose, Colors, IntervalExchange, PoincaréDisk, Testing
 
 tilt(x::Integer, y::Integer) = ((10*x + 7*y)//149, (-7*x + 10*y)//149)
 
@@ -43,34 +45,70 @@ end
 
 # === output
 
+function scatter(crawler::CayleyCrawler, a, b, c)
+  at = möbius_map(crawler.home, a)
+  bt = möbius_map(crawler.home, b)
+  ct = möbius_map(crawler.home, c)
+  loc = compose(
+    context(),
+    (context(),
+      geodesic(at, bt),
+      geodesic(bt, ct),
+      geodesic(ct, at),
+      stroke("lawngreen")
+    ),
+    (horotriangle(at, bt, ct, 60, 1/11), stroke("yellow")),
+    linewidth(0.1mm)
+  )
+  return compose(context(), loc, [scatter(sh, a, b, c) for sh in crawler.shoots]...)
+end
+
 function caterpillar_pics{R <: AbstractInterval}(angle_offset::R = @interval(1/11); svg = false)
   # set up cocycle
   a = twisted_caterpillar(@interval(3π/4) + angle_offset)
   for h in a.blocks
     println(h)
   end
+  
+  # retrieve a break point
+  tripod_break = a.blocks[6].out_left
+  
+  # evolve cocycle
+  println("---------")
   for i in 1:3
     a = twostep(a)
   end
+  for h in a.blocks
+    println(h)
+  end
+  
+  # find the vertices of the triangle corresponding to tripod_break
+  f_break = nothing
+  for h in a.blocks
+    if strictprecedes(h.in_left, tripod_break) && strictprecedes(tripod_break, h.in_right)
+      f_break = h
+      break
+    end
+  end
+  b_breaks = []
+  for k in a.blocks
+    if !missed_connection(f_break, k)
+      push!(b_breaks, k)
+    end
+  end
+  vertices = [repeller(f_break.f_transit); [repeller(k.b_transit) for k in b_breaks]]
+  println(vertices)
+  
+  # enumerate symmetry group elements
+  transit = Regular.generators(2)
+  transit = [transit; [inv(t) for t in transit]]
+  crawler = CayleyCrawler(4, 4, 2)
+  find_home!(crawler, transit)
   
   # draw poincaré disk
-  disk = compose(context(), circle(), stroke("black"), fill(nothing), linewidth(0.4mm))
+  disk = compose(compose(context(), circle()), fill("dimgray"), stroke(nothing))
+  lam = scatter(crawler, vertices[1], vertices[length(vertices)], vertices[2])
   
-  # draw lamination and foliation
-  clay = RGB(161/255, 149/255, 126/255)
-  #silt = RGB(204/255, 193/255, 174/255)
-  amethyst = RGB(204/255, 125/255, 189/255)
-  lam = compose(context(), lamination(a, Regular.generators(2), 3), stroke(clay), linewidth(0.1mm))
-  fol = compose(context(), foliage(a), stroke(amethyst), linewidth(0.1))
-  
-  # print outputs
-  if svg
-    lam_file = SVG("laminated.svg", 7cm, 7cm)
-    fol_file = SVG("foliated.svg", 7cm, 7cm)
-  else
-    lam_file = PDF("laminated.pdf", 7cm, 7cm)
-    fol_file = PDF("foliated.pdf", 7cm, 7cm)
-  end
-  draw(lam_file, compose(context(), disk, lam))
-  draw(fol_file, compose(context(), disk, lam, fol))
+  tripod_file = PDF("tripod_test.pdf", 7cm, 7cm)
+  draw(tripod_file, compose(lam, disk,(context(), rectangle(), fill("darkgray"))))
 end

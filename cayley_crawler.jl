@@ -1,5 +1,6 @@
 module Testing
-export test_crawler
+
+export CayleyCrawler, find_home!
 
 const ROOT     =  3
 const CLIMBER  =  0
@@ -132,6 +133,7 @@ end
 
 # === testing
 
+#=
 using Colors
 
 include("regular.jl")
@@ -182,5 +184,6 @@ function test_crawler()
   
   draw(SVG("crawler_test.svg", 7cm, 7cm), pic)
 end
+=#
 
 end
