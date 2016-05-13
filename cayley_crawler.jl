@@ -1,6 +1,6 @@
 module Crawl
 
-export CayleyCrawler, findhome!, fanout
+export CayleyCrawler, findhome!, mapcollect
 
 const ROOT     =  3
 const CLIMBER  =  0
@@ -126,11 +126,11 @@ function findhome!(crawler::CayleyCrawler, transit, base=eye(2))
   end
 end
 
-fanout(f::Function, crawler::CayleyCrawler) =
+mapcollect(f::Function, crawler::CayleyCrawler) =
   if isempty(crawler.shoots)
     return [f(crawler.home)]
   else
-    return vcat(f(crawler.home), [fanout(f, sh) for sh in crawler.shoots]...)
+    return vcat(f(crawler.home), [mapcollect(f, sh) for sh in crawler.shoots]...)
   end
 
 end

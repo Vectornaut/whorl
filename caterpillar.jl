@@ -125,10 +125,10 @@ function caterpillar_pics{R <: AbstractInterval}(angle_offset::R = @interval(1/1
   
   # draw dots
   glass = RGBA(0.0, 0.8, 0.6, 0.2)
-  dots = compose(context(), fanout(dot_orbiter, crawler)..., fill(glass))
+  dots = compose(context(), mapcollect(dot_orbiter, crawler)..., fill(glass))
   
   # draw triangle lifts
-  triangles = fanout(triangle_orbiter(vertices[1], vertices[length(vertices)], vertices[2]), crawler)
+  triangles = mapcollect(triangle_orbiter(vertices[1], vertices[length(vertices)], vertices[2]), crawler)
   lam = compose(context(), triangles...)
   
   draw(PDF("tripod_test.pdf", 7cm, 7cm), compose(lam, disk))
