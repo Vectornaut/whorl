@@ -1,9 +1,12 @@
 include("interval_exchange.jl")
-include("poincare_disk.jl")
 include("regular.jl")
 include("cayley_crawler.jl")
 
-using ValidatedNumerics, Compose, Colors, IntervalExchange, PoincaréDisk, Testing
+module Testing
+
+using ValidatedNumerics, Compose, Colors, IntervalExchange, PoincaréDisk, Regular, Crawl
+
+export caterpillar_pics, triangle_orbiter
 
 tilt(x::Integer, y::Integer) = ((10*x + 7*y)//149, (-7*x + 10*y)//149)
 
@@ -45,23 +48,32 @@ end
 
 # === output
 
-function scatter(crawler::CayleyCrawler, a, b, c)
-  at = möbius_map(crawler.home, a)
-  bt = möbius_map(crawler.home, b)
-  ct = möbius_map(crawler.home, c)
+function dot_orbiter(m)
+  w = möbius_map(m, 0)
   loc = compose(
-    context(),
-    (context(),
-      geodesic(at, bt),
-      geodesic(bt, ct),
-      geodesic(ct, at),
-      stroke("lawngreen")
-    ),
-    (horotriangle(at, bt, ct, 60, 1/11), stroke("yellow")),
-    linewidth(0.1mm)
+    context(units=UnitBox(-1, -1, 2, 2)),
+    (context(real(w) - 0.01, imag(w) - 0.01, 0.02, 0.02), circle())
   )
-  return compose(context(), loc, [scatter(sh, a, b, c) for sh in crawler.shoots]...)
+  
 end
+
+triangle_orbiter(z1, z2, z3) =
+  m -> begin
+    w1 = möbius_map(m, z1)
+    w2 = möbius_map(m, z2)
+    w3 = möbius_map(m, z3)
+    return compose(
+      context(),
+      (context(),
+        geodesic(w1, w2),
+        geodesic(w2, w3),
+        geodesic(w3, w1),
+        stroke("orangered")
+      ),
+      (horotriangle(w1, w2, w3, 60, 1/11), stroke("orange")),
+      linewidth(0.1mm)
+    )
+  end
 
 function caterpillar_pics{R <: AbstractInterval}(angle_offset::R = @interval(1/11); svg = false)
   # set up cocycle
@@ -100,15 +112,27 @@ function caterpillar_pics{R <: AbstractInterval}(angle_offset::R = @interval(1/1
   println(vertices)
   
   # enumerate symmetry group elements
-  transit = Regular.generators(2)
+  transit = generators(2)
   transit = [transit; [inv(t) for t in transit]]
   crawler = CayleyCrawler(4, 4, 2)
   find_home!(crawler, transit)
   
   # draw poincaré disk
-  disk = compose(compose(context(), circle()), fill("dimgray"), stroke(nothing))
-  lam = scatter(crawler, vertices[1], vertices[length(vertices)], vertices[2])
+  disk = compose(context(),
+    (context(), circle(), fill("white"), stroke(nothing)),
+    (context(), rectangle(), fill("gainsboro"), stroke(nothing))
+  )
   
-  tripod_file = PDF("tripod_test.pdf", 7cm, 7cm)
-  draw(tripod_file, compose(lam, disk,(context(), rectangle(), fill("darkgray"))))
+  # draw dots
+  glass = RGBA(0.0, 0.8, 0.6, 0.2)
+  dots = compose(context(), fan_out(dot_orbiter, crawler)..., fill(glass))
+  
+  # draw triangle lifts
+  triangles = fan_out(triangle_orbiter(vertices[1], vertices[length(vertices)], vertices[2]), crawler)
+  lam = compose(context(), triangles...)
+  
+  draw(PDF("tripod_test.pdf", 7cm, 7cm), compose(lam, disk))
+  draw(PDF("crawler_test.pdf", 7cm, 7cm), compose(dots, disk))
+end
+
 end

@@ -1,6 +1,6 @@
-module Testing
+module Crawl
 
-export CayleyCrawler, find_home!
+export CayleyCrawler, find_home!, fan_out
 
 const ROOT     =  3
 const CLIMBER  =  0
@@ -112,7 +112,7 @@ type CayleyCrawler
   end
 end
 
-function find_home!(crawler::CayleyCrawler, transit, base=eye(2); basket=nothing)
+function find_home!(crawler::CayleyCrawler, transit, base=eye(2))
   # find our way home
   if crawler.mode == ROOT
     crawler.home = base
@@ -120,70 +120,17 @@ function find_home!(crawler::CayleyCrawler, transit, base=eye(2); basket=nothing
     crawler.home = base * transit[crawler.down+1]
   end
   
-  # throw it in the basket, if one was provided
-  if basket != nothing
-    push!(basket, crawler.home)
-  end
-  
   # tell our shoots to find their ways home
   for sh in crawler.shoots
-    find_home!(sh, transit, crawler.home, basket=basket)
+    find_home!(sh, transit, crawler.home)
   end
 end
 
-# === testing
-
-#=
-using Colors
-
-include("regular.jl")
-include("poincare_disk.jl")
-
-function scatter(crawler::CayleyCrawler, z)
-  w = möbius_map(crawler.home, z)
-  loc = compose(
-    context(units=UnitBox(-1, -1, 2, 2)),
-    (context(real(w) - 0.01, imag(w) - 0.01, 0.02, 0.02), circle())
-  )
-  compose(context(), loc, [scatter(sh, z) for sh in crawler.shoots]...)
-end
-
-function test_crawler()
-  transit = generators(2)
-  transit = [transit; [inv(t) for t in transit]]
-  
-  list = []
-  crawler = CayleyCrawler(4, 4, 2)
-  find_home!(crawler, transit, basket=list)
-  
-  glass = RGBA(0.0, 0.8, 0.6, 0.2)
-  
-  pic = compose(
-    context(),
-    (context(0.05, 0.05, 0.9, 0.9),
-      (context(), scatter(crawler, 0), fill(glass)),
-      (context(), circle(), fill("white"))
-    ),
-    (context(), rectangle(), fill("gainsboro"))
-  )
-  
-  println(string(length(list), " elements"))
-  for eps in [10, 1, 0.1]
-    collision_cnt = 0
-    for m in 1:length(list)
-      for n in m:length(list)
-        # if roundoff error is so bad that we can't detect the collision
-        # between an element and itself, the diagonal subtraction will alert us
-        if norm(list[m]\list[n] - eye(2)) < eps
-          collision_cnt += 1
-        end
-      end
-    end
-    println(string(collision_cnt - length(list), " collisions"))
+fan_out(f::Function, crawler::CayleyCrawler) =
+  if isempty(crawler.shoots)
+    return [f(crawler.home)]
+  else
+    return vcat(f(crawler.home), [fan_out(f, sh) for sh in crawler.shoots]...)
   end
-  
-  draw(SVG("crawler_test.svg", 7cm, 7cm), pic)
-end
-=#
 
 end
