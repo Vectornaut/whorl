@@ -1,8 +1,8 @@
-module PoincareDisk
+module PoincaréDisk
 
 using Compose
 
-export repeller, horotriangle, geodesic_orbit
+export möbius_map, repeller, geodesic, horotriangle, geodesic_orbit
 
 # === möbius transformations
 

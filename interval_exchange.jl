@@ -2,9 +2,9 @@ include("poincare_disk.jl")
 
 module IntervalExchange
 
-using ValidatedNumerics, Compose, PoincareDisk
+using ValidatedNumerics, Compose, PoincaréDisk
 
-export Cocycle, twostep, lamination, foliage
+export Cocycle, missed_connection, twostep, lamination, foliage
 
 # === exchangers
 
