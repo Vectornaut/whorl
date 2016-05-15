@@ -183,6 +183,14 @@ function Cocycle{
   Cocycle(blocks_by_in, blocks_by_out)
 end
 
+# scan through the in and out blocks of an interval exchange from left to right,
+# applying functions to certain arrangements of blocks and collecting the
+# results in order
+# - when the in block of h connects to the out block of k, call thru_fn(h, k)
+# - when the in blocks of left and right are adjacent, and both connect to the
+#   out block of pivot, call f_fn(left, right, pivot)
+# - when the out blocks of left and right are adjacent, and both connect to the
+#   in block of pivot, call b_fn(left, right, pivot)
 function scancollect(
   a::Cocycle,
   output_type::DataType;
@@ -214,7 +222,9 @@ function scancollect(
       end
     end
   end
-  return output
+  
+  # return
+  output
 end
 
 # compose an interval exchange cocyle with itself, roughly doubling the number
@@ -240,10 +250,10 @@ lamination{R <: AbstractInterval}(a::Cocycle{R}, sym, depth = 0) =
 foliage(a::Cocycle) =
   scancollect(
     a, Context,
-    f_fn = (left, right, tail) -> compose(
+    f_fn = (left, right, pivot) -> compose(
       context(),
       horotriangle(
-        repeller(tail.b_transit),
+        repeller(pivot.b_transit),
         repeller(left.f_transit),
         repeller(right.f_transit),
         69, 1/21, 4e-3
@@ -251,10 +261,10 @@ foliage(a::Cocycle) =
       stroke("coral"),
       linewidth(0.1mm)
     ),
-    b_fn = (left, right, tail) -> compose(
+    b_fn = (left, right, pivot) -> compose(
       context(),
       horotriangle(
-        repeller(tail.f_transit),
+        repeller(pivot.f_transit),
         repeller(right.b_transit),
         repeller(left.b_transit),
         69, 1/21, 4e-3
