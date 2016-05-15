@@ -90,8 +90,21 @@ function test{R <: AbstractInterval}(angle_offset::R = @interval(1/11); svg = fa
   dots = compose(context(), mapcollect(dot_orbiter, crawler)..., fill(glass))
   
   # draw triangle lifts
-  triangles = mapcollect(triangle_orbiter(vertices[1], vertices[length(vertices)], vertices[2]), crawler)
-  triangle_pic = compose(context(), triangles...)
+  triangles = scancollect(a, Array{Context},
+    b_fn = (left, right, pivot) -> mapcollect(
+      triangle_orbiter(
+        repeller(right.b_transit),
+        repeller(left.b_transit),
+        repeller(pivot.f_transit)
+      ),
+      crawler
+    ),
+    just_marked = true
+  )
+  
+  ##triangles = mapcollect(triangle_orbiter(vertices[1], vertices[length(vertices)], vertices[2]), crawler)
+  println(typeof(triangles))
+  triangle_pic = compose(context(), vcat(triangles...)...)
   
   # draw lamination and horocycle foliation
   lam = compose(context(), lamination(a, generators(2), 3)..., stroke("midnightblue"), linewidth(0.1mm))

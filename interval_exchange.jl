@@ -4,7 +4,7 @@ module IntervalExchange
 
 using ValidatedNumerics, Compose, PoincaréDisk
 
-export Cocycle, missed_connection, twostep, lamination, foliage
+export Cocycle, missed_connection, scancollect, twostep, lamination, foliage
 
 # === exchangers
 
@@ -31,7 +31,10 @@ type Exchanger{R <: AbstractInterval}
   f_transit
   b_transit
   
-  function Exchanger(in_left, in_right, f_shift, f_transit, b_transit)
+  # marks this exchanger as the left foot of a marked pivot
+  leftfoot::Bool
+  
+  function Exchanger(in_left, in_right, f_shift, f_transit, b_transit, leftfoot = false)
     new(
       in_left,            # in_left
       in_right,           # in_right
@@ -40,6 +43,7 @@ type Exchanger{R <: AbstractInterval}
       f_shift,            # f_shift
       f_transit,          # f_transit
       b_transit,          # b_transit
+      leftfoot            # leftfoot
     )
   end
 end
@@ -104,6 +108,14 @@ function pipe{R <: AbstractInterval}(h::Exchanger{R}, k::Exchanger{R})
     # collision contributes to the uncertainty in the right endpoint of the in
     # block of the composition
     new_right += h.in_right - k.out_right
+    
+    # the right endpoint of the new block comes from to h, so the new block is
+    # the left foot of a marked pivot if and only if h is
+    ##new_leftfoot = h.leftfoot
+    new_leftfoot = false
+  else
+    # the right endpoint of the new block comes from k
+    new_leftfoot = k.leftfoot
   end
   
   Exchanger{R}(
@@ -111,7 +123,8 @@ function pipe{R <: AbstractInterval}(h::Exchanger{R}, k::Exchanger{R})
     new_right,
     h.f_shift + k.f_shift,
     h.f_transit * k.f_transit,
-    k.b_transit * h.b_transit
+    k.b_transit * h.b_transit,
+    new_leftfoot
   )
 end
 
@@ -163,6 +176,7 @@ function Cocycle{
   end
   
   # build the interval exchange, block by block
+  ## for testing, make the right endpoint of one in block a marked pivot
   blocks_by_in = Exchanger{R}[]
   for (t, s) in enumerate(b_shuffle)
     push!(
@@ -172,7 +186,8 @@ function Cocycle{
         pad_in_breaks[t+1],
         pad_out_breaks[s] - pad_in_breaks[t],
         f_transit[t],
-        inv(f_transit[t])
+        inv(f_transit[t]),
+        t == 5
       )
     )
   end
@@ -196,7 +211,8 @@ function scancollect(
   output_type::DataType;
   thru_fn::Union{Function, Void} = nothing,
   f_fn::Union{Function, Void} = nothing,
-  b_fn::Union{Function, Void} = nothing
+  b_fn::Union{Function, Void} = nothing,
+  just_marked::Bool = false
 )
   output = output_type[]
   s = 1
@@ -212,12 +228,12 @@ function scancollect(
       break
     elseif pre_hanging(h, k)
       s += 1
-      if f_fn != nothing
+      if f_fn != nothing && (!just_marked || h.leftfoot)
         push!(output, f_fn(h, a.blocks_by_in[s], k))
       end
     else
       t += 1
-      if b_fn != nothing
+      if b_fn != nothing && (!just_marked || k.leftfoot)
         push!(output, b_fn(k, a.blocks_by_out[t], h))
       end
     end
