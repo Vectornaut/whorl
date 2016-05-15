@@ -183,103 +183,85 @@ function Cocycle{
   Cocycle(blocks_by_in, blocks_by_out)
 end
 
+function scancollect(
+  a::Cocycle,
+  output_type::DataType;
+  thru_fn::Union{Function, Void} = nothing,
+  f_fn::Union{Function, Void} = nothing,
+  b_fn::Union{Function, Void} = nothing
+)
+  output = output_type[]
+  s = 1
+  t = 1
+  while true
+    h = a.blocks_by_in[s]
+    k = a.blocks_by_out[t]
+    if thru_fn != nothing
+      push!(output, thru_fn(h, k))
+    end
+    
+    if s == length(a.blocks_by_in) && t == length(a.blocks_by_out)
+      break
+    elseif pre_hanging(h, k)
+      s += 1
+      if f_fn != nothing
+        push!(output, f_fn(h, a.blocks_by_in[s], k))
+      end
+    else
+      t += 1
+      if b_fn != nothing
+        push!(output, b_fn(k, a.blocks_by_out[t], h))
+      end
+    end
+  end
+  return output
+end
+
 # compose an interval exchange cocyle with itself, roughly doubling the number
 # of blocks (if the original interval exchange has n blocks, the new one will
 # have 2n - 1)
 function twostep{R <: AbstractInterval}(a::Cocycle{R})
-  new_blocks = Exchanger{R}[]
-  s = 1
-  t = 1
-  while true
-    h = a.blocks_by_in[s]
-    k = a.blocks_by_out[t]
-    push!(new_blocks, pipe(h, k))
-    
-    if s == length(a.blocks_by_in) && t == length(a.blocks_by_out)
-      break
-    elseif pre_hanging(h, k)
-      s += 1
-    else
-      t += 1
-    end
-  end
-  
-  new_blocks_by_in = sort(new_blocks, lt=in_isless)
-  new_blocks_by_out = sort(new_blocks, lt=out_isless)
+  new_blocks = scancollect(a, Exchanger{R}, thru_fn = (h, k) -> pipe(h, k))
+  new_blocks_by_in = sort(new_blocks, lt = in_isless)
+  new_blocks_by_out = sort(new_blocks, lt = out_isless)
   Cocycle(new_blocks_by_in, new_blocks_by_out)
 end
 
-function lamination{R <: AbstractInterval}(a::Cocycle{R}, sym, depth=0)
-  lam = Context[]
-  
-  s = 1
-  t = 1
-  while true
-    h = a.blocks_by_in[s]
-    k = a.blocks_by_out[t]
-    push!(
-      lam,
-      geodesic_orbit(
-        repeller(k.b_transit),
-        repeller(h.f_transit),
-        sym, depth
-      )
+lamination{R <: AbstractInterval}(a::Cocycle{R}, sym, depth = 0) =
+  scancollect(
+    a, Context,
+    thru_fn = (h, k) -> geodesic_orbit(
+      repeller(k.b_transit),
+      repeller(h.f_transit),
+      sym, depth
     )
-    
-    if s == length(a.blocks_by_in) && t == length(a.blocks_by_out)
-      break
-    elseif pre_hanging(h, k)
-      s += 1
-    else
-      t += 1
-    end
-  end
-  
-  compose(context(), lam...)
-end
+  )
 
-function foliage(a::Cocycle)
-  triangles = Context[]
-  
-  in_order = a.blocks
-  out_order = sort(a.blocks, by = bl -> bl.out_left)
-  
-  # like the one in twostep, the loops below could be made much more efficient
-  
-  for k in in_order
-    for s in 1:(length(in_order) - 1)
-      if !missed_connection(in_order[s], k) && !missed_connection(in_order[s+1], k)
-        push!(
-          triangles,
-          horotriangle(
-            repeller(k.b_transit),
-            repeller(in_order[s].f_transit),
-            repeller(in_order[s+1].f_transit),
-            69, 1/21, 4e-3
-          )
-        )
-      end
-    end
-  end
-  
-  out_order = sort(a.blocks, by=bl -> bl.out_left)
-  for h in out_order
-    for s in 1:(length(out_order) - 1)
-      if !missed_connection(h, out_order[s]) && !missed_connection(h, out_order[s+1])
-        push!(
-          triangles,
-          horotriangle(
-            repeller(h.f_transit),
-            repeller(out_order[s+1].b_transit),
-            repeller(out_order[s].b_transit),
-            69, 1/21, 4e-3
-          )
-        )
-      end
-    end
-  end
-  
-  compose(context(), triangles...)
-end
+foliage(a::Cocycle) =
+  scancollect(
+    a, Context,
+    f_fn = (left, right, tail) -> compose(
+      context(),
+      horotriangle(
+        repeller(tail.b_transit),
+        repeller(left.f_transit),
+        repeller(right.f_transit),
+        69, 1/21, 4e-3
+      ),
+      stroke("coral"),
+      linewidth(0.1mm)
+    ),
+    b_fn = (left, right, tail) -> compose(
+      context(),
+      horotriangle(
+        repeller(tail.f_transit),
+        repeller(right.b_transit),
+        repeller(left.b_transit),
+        69, 1/21, 4e-3
+      ),
+      stroke("deeppink"),
+      linewidth(0.1mm)
+    )
+  )
 
 end

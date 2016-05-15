@@ -33,7 +33,7 @@ triangle_orbiter(z1, z2, z3) =
     )
   end
 
-function caterpillar_pics{R <: AbstractInterval}(angle_offset::R = @interval(1/11); svg = false)
+function test{R <: AbstractInterval}(angle_offset::R = @interval(1/11); svg = false)
   # set up cocycle
   a = twisted_caterpillar(@interval(3π/4) + angle_offset, Regular.generators(2))
   for h in a.blocks_by_in
@@ -91,10 +91,16 @@ function caterpillar_pics{R <: AbstractInterval}(angle_offset::R = @interval(1/1
   
   # draw triangle lifts
   triangles = mapcollect(triangle_orbiter(vertices[1], vertices[length(vertices)], vertices[2]), crawler)
-  lam = compose(context(), triangles...)
+  triangle_pic = compose(context(), triangles...)
   
-  draw(PDF("tripod_test.pdf", 7cm, 7cm), compose(lam, disk))
+  # draw lamination and horocycle foliation
+  lam = compose(context(), lamination(a, generators(2), 3)..., stroke("midnightblue"), linewidth(0.1mm))
+  fol = compose(context(), foliage(a)...)
+  
+  draw(PDF("tripod_test.pdf", 7cm, 7cm), compose(triangle_pic, disk))
   draw(PDF("crawler_test.pdf", 7cm, 7cm), compose(dots, disk))
+  draw(PDF("laminated.pdf", 7cm, 7cm), compose(lam, disk))
+  draw(PDF("foliated.pdf", 7cm, 7cm), compose(lam, fol, disk))
 end
 
 end
