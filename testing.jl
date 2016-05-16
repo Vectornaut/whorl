@@ -31,15 +31,21 @@ triangle_orbiter(p::Triangle) =
     a = möbius_map(m, p.a)
     b = möbius_map(m, p.b)
     c = möbius_map(m, p.pivot)
+    leafcolor = [
+      "hotpink",
+      "orangered",
+      "gold",
+      "purple"
+    ][p.sing]
     return compose(
       context(),
       (context(),
         geodesic(a, b),
         geodesic(b, c),
         geodesic(c, a),
-        stroke("orangered")
+        stroke("gray")
       ),
-      (horotriangle(a, b, c, 60, 1/11), stroke("orange")),
+      (horotriangle(a, b, c, 60, 1/11), stroke(leafcolor)),
       linewidth(0.1mm)
     )
   end
@@ -89,7 +95,7 @@ function test{R <: AbstractInterval}(angle_offset::R = @interval(1/11); svg = fa
     )
   )
   widest = Triangle[]
-  for sing in [1]
+  for sing in 1:4
     push!(widest, maximum(filter(p -> p.sing == sing, triangles)))
   end
   
@@ -105,9 +111,11 @@ function test{R <: AbstractInterval}(angle_offset::R = @interval(1/11); svg = fa
     (context(), rectangle(), fill("gainsboro"), stroke(nothing))
   )
   
+  #=
   # draw dots
   glass = RGBA(0.0, 0.8, 0.6, 0.2)
   dots = compose(context(), mapcollect(dot_orbiter, crawler)..., fill(glass))
+  =#
   
   # draw triangle lifts
   tri = vcat([mapcollect(triangle_orbiter(p), crawler) for p in widest]...)
