@@ -6,29 +6,40 @@ module Testing
 
 using ValidatedNumerics, Compose, Colors, IntervalExchange, Caterpillar, PoincaréDisk, Regular, Crawl
 
+type Triangle
+  a::Complex
+  b::Complex
+  pivot::Complex
+  gap::Real
+  sing
+  
+  Triangle(a, b, pivot, sing) = new(a, b, pivot, 1-real(b/a), sing)
+end
+
+Base.isless(p::Triangle, q::Triangle) = p.gap < q.gap
+
 function dot_orbiter(m)
   w = möbius_map(m, 0)
-  loc = compose(
+  compose(
     context(units=UnitBox(-1, -1, 2, 2)),
     (context(real(w) - 0.01, imag(w) - 0.01, 0.02, 0.02), circle())
   )
-  
 end
 
-triangle_orbiter(z1, z2, z3) =
+triangle_orbiter(p::Triangle) =
   m -> begin
-    w1 = möbius_map(m, z1)
-    w2 = möbius_map(m, z2)
-    w3 = möbius_map(m, z3)
+    a = möbius_map(m, p.a)
+    b = möbius_map(m, p.b)
+    c = möbius_map(m, p.pivot)
     return compose(
       context(),
       (context(),
-        geodesic(w1, w2),
-        geodesic(w2, w3),
-        geodesic(w3, w1),
+        geodesic(a, b),
+        geodesic(b, c),
+        geodesic(c, a),
         stroke("orangered")
       ),
-      (horotriangle(w1, w2, w3, 60, 1/11), stroke("orange")),
+      (horotriangle(a, b, c, 60, 1/11), stroke("orange")),
       linewidth(0.1mm)
     )
   end
@@ -45,8 +56,20 @@ function test{R <: AbstractInterval}(angle_offset::R = @interval(1/11); svg = fa
   end
   println("by out ---------")
   
-  # retrieve a break point
-  tripod_break = a.blocks_by_in[6].out_left
+  # hand-label singularities
+  a.blocks_by_in[1].sing = 1
+  a.blocks_by_in[2].sing = 2
+  a.blocks_by_in[3].sing = 1
+  a.blocks_by_in[4].sing = 2
+  a.blocks_by_in[5].sing = 1
+  a.blocks_by_in[6].sing = 2
+  a.blocks_by_in[7].sing = 3
+  a.blocks_by_in[8].sing = 4
+  a.blocks_by_in[9].sing = 3
+  a.blocks_by_in[10].sing = 4
+  a.blocks_by_in[11].sing = 3
+  a.blocks_by_in[12].sing = 4
+  a.blocks_by_in[13].sing = 1
   
   # evolve cocycle
   for i in 1:3
@@ -56,22 +79,19 @@ function test{R <: AbstractInterval}(angle_offset::R = @interval(1/11); svg = fa
     println("$i ~~~~~~~~~")
   end
   
-  # find the vertices of the triangle corresponding to tripod_break
-  f_break = nothing
-  for h in a.blocks_by_in
-    if strictprecedes(h.in_left, tripod_break) && strictprecedes(tripod_break, h.in_right)
-      f_break = h
-      break
-    end
+  # find the widest triangle for each singularity
+  triangles = scancollect(a, Triangle,
+    b_fn = (left, right, pivot) -> Triangle(
+      repeller(right.b_transit),
+      repeller(left.b_transit),
+      repeller(pivot.f_transit),
+      left.sing
+    )
+  )
+  widest = Triangle[]
+  for sing in [1]
+    push!(widest, maximum(filter(p -> p.sing == sing, triangles)))
   end
-  b_breaks = []
-  for k in a.blocks_by_in
-    if !missed_connection(f_break, k)
-      push!(b_breaks, k)
-    end
-  end
-  vertices = [repeller(f_break.f_transit); [repeller(k.b_transit) for k in b_breaks]]
-  println(vertices)
   
   # enumerate symmetry group elements
   transit = generators(2)
@@ -90,30 +110,21 @@ function test{R <: AbstractInterval}(angle_offset::R = @interval(1/11); svg = fa
   dots = compose(context(), mapcollect(dot_orbiter, crawler)..., fill(glass))
   
   # draw triangle lifts
-  triangles = scancollect(a, Array{Context},
-    b_fn = (left, right, pivot) -> mapcollect(
-      triangle_orbiter(
-        repeller(right.b_transit),
-        repeller(left.b_transit),
-        repeller(pivot.f_transit)
-      ),
-      crawler
-    ),
-    just_marked = true
-  )
+  tri = vcat([mapcollect(triangle_orbiter(p), crawler) for p in widest]...)
+  tri_pic = compose(context(), tri...)
   
-  ##triangles = mapcollect(triangle_orbiter(vertices[1], vertices[length(vertices)], vertices[2]), crawler)
-  println(typeof(triangles))
-  triangle_pic = compose(context(), vcat(triangles...)...)
-  
+  #=
   # draw lamination and horocycle foliation
   lam = compose(context(), lamination(a, generators(2), 3)..., stroke("midnightblue"), linewidth(0.1mm))
   fol = compose(context(), foliage(a)...)
+  =#
   
-  draw(PDF("tripod_test.pdf", 7cm, 7cm), compose(triangle_pic, disk))
+  draw(PDF("triangle_test.pdf", 7cm, 7cm), compose(tri_pic, disk))
+  #=
   draw(PDF("crawler_test.pdf", 7cm, 7cm), compose(dots, disk))
   draw(PDF("laminated.pdf", 7cm, 7cm), compose(lam, disk))
   draw(PDF("foliated.pdf", 7cm, 7cm), compose(lam, fol, disk))
+  =#
 end
 
 end
