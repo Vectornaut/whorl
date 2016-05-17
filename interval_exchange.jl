@@ -191,6 +191,42 @@ function Cocycle{
   # sort the block list by out block
   blocks_by_out = [blocks_by_in[s] for s in f_shuffle]
   
+  # label the singularities
+  sing = 1
+  for start in 1:length(blocks_by_in)
+    if blocks_by_in[start].sing == nothing
+      # if we've found a new singularity, label all the blocks touching it
+      s = start
+      fwd = true
+      while true
+        # step to the next block around the singularity
+        if fwd
+          blocks_by_in[s].sing = sing
+          s = b_shuffle[s] + 1
+        else
+          s = f_shuffle[s] - 1
+        end
+        
+        # switch direction, unless we're going around an endpoint
+        if s < 1
+          s += 1
+        elseif s > length(f_shuffle)
+          s -= 1
+        else
+          fwd = !fwd
+        end
+        
+        # if we're back where we started, break
+        if (s, fwd) == (start, true)
+          break
+        end
+      end
+      
+      # increment the label
+      sing += 1
+    end
+  end
+  
   Cocycle(blocks_by_in, blocks_by_out)
 end
 

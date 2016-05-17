@@ -53,6 +53,7 @@ triangle_orbiter(p::Triangle) =
 function test{R <: AbstractInterval}(angle_offset::R = @interval(1/11); svg = false)
   # set up cocycle
   a = twisted_caterpillar(@interval(3π/4) + angle_offset, Regular.generators(2))
+  #=
   for h in a.blocks_by_in
     println(h)
   end
@@ -61,21 +62,7 @@ function test{R <: AbstractInterval}(angle_offset::R = @interval(1/11); svg = fa
     println(h)
   end
   println("by out ---------")
-  
-  # hand-label singularities
-  a.blocks_by_in[1].sing = 1
-  a.blocks_by_in[2].sing = 2
-  a.blocks_by_in[3].sing = 1
-  a.blocks_by_in[4].sing = 2
-  a.blocks_by_in[5].sing = 1
-  a.blocks_by_in[6].sing = 2
-  a.blocks_by_in[7].sing = 3
-  a.blocks_by_in[8].sing = 4
-  a.blocks_by_in[9].sing = 3
-  a.blocks_by_in[10].sing = 4
-  a.blocks_by_in[11].sing = 3
-  a.blocks_by_in[12].sing = 4
-  a.blocks_by_in[13].sing = 1
+  =#
   
   # evolve cocycle
   for i in 1:3
