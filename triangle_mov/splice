@@ -1,0 +1,1 @@
+convert *.png -duplicate 1,-2-1 -set delay 6.25 -loop 0 triangle_mov.gif

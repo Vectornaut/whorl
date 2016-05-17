@@ -32,28 +32,21 @@ triangle_orbiter(p::Triangle) =
     b = möbius_map(m, p.b)
     c = möbius_map(m, p.pivot)
     leafcolor = [
-      "deeppink",
-      "orangered",
-      "gold",
-      "purple"
+      RGB(255/255, 1/255, 73/255),
+      RGB(255/255, 121/255, 1/255),
+      RGB(255/255, 210/255, 0/255),
+      RGB(118/255, 200/255, 0/255)
     ][p.sing]
     return compose(
       context(),
       (context(),
-        ideal_edges(a, b, c),
-        stroke("black"),
-        fill(nothing)
-      ),
-      (context(),
         ideal_path(a, b, c),
         fill(leafcolor)
-      ),
-      ##(horotriangle(a, b, c, 60, 1/11), stroke(leafcolor)),
-      linewidth(0.1mm)
+      )
     )
   end
 
-function test{R <: AbstractInterval}(angle_offset::R = @interval(1/11); svg = false)
+function test{R <: AbstractInterval}(angle_offset::R = @interval(1/11); frame = nothing, svg = false)
   # set up cocycle
   a = twisted_caterpillar(@interval(3π/4) + angle_offset, Regular.generators(2))
   #=
@@ -70,9 +63,8 @@ function test{R <: AbstractInterval}(angle_offset::R = @interval(1/11); svg = fa
   # evolve cocycle
   for i in 1:3
     a = @time(twostep(a))
-    println("$(length(a.blocks_by_in)) blocks by in")
-    println("$(length(a.blocks_by_out)) blocks by out")
-    println("$i ~~~~~~~~~")
+    println("$(length(a.blocks_by_in)) blocks")
+    println("Step $i ~~~~~~~~~")
   end
   
   # find the widest triangle for each singularity
@@ -95,32 +87,39 @@ function test{R <: AbstractInterval}(angle_offset::R = @interval(1/11); svg = fa
   crawler = CayleyCrawler(4, 4, 2)
   findhome!(crawler, transit)
   
-  # draw poincaré disk
-  disk = compose(context(),
-    (context(), circle(), fill("white"), stroke(nothing)),
-    (context(), rectangle(), fill("gainsboro"), stroke(nothing))
+  # draw background
+  bg = compose(context(),
+    (context(), rectangle(), fill("white"), stroke(nothing))
   )
-  
-  # draw dots
-  glass = RGBA(0.0, 0.8, 0.6, 0.2)
-  dots = compose(context(), mapcollect(dot_orbiter, crawler)..., fill(glass))
   
   # draw triangle lifts
   tri = vcat([mapcollect(triangle_orbiter(p), crawler) for p in widest]...)
   tri_pic = compose(context(), tri...)
   
-  #=
-  # draw lamination and horocycle foliation
-  lam = compose(context(), lamination(a, generators(2), 3)..., stroke("midnightblue"), linewidth(0.1mm))
-  fol = compose(context(), foliage(a)...)
-  =#
-  
-  draw(PDF("triangle_test.pdf", 7cm, 7cm), compose(tri_pic, disk))
-  draw(PDF("crawler_test.pdf", 7cm, 7cm), compose(dots, disk))
-  #=
-  draw(PDF("laminated.pdf", 7cm, 7cm), compose(lam, disk))
-  draw(PDF("foliated.pdf", 7cm, 7cm), compose(lam, fol, disk))
-  =#
+  if frame == nothing
+    draw(PDF("triangle_test.pdf", 7cm, 7cm), compose(tri_pic, bg))
+  else
+    draw(PNG(@sprintf("triangle_mov/frame%02i.png", frame), 500px, 500px), compose(tri_pic, bg))
+  end
+end
+
+# the first two terms of a sawtooth wave, modified to zero out the jerk at the
+# the inflection point and rescaled into the box [0,1] × [0,1]
+function easing(t)
+  θ = π*(t - 1/2)
+  x = sin(θ) - sin(3θ)/26
+  (1 + (x / (1+1/26))) / 2
+end
+
+function movie()
+  start = @interval(-π/4 + 0.01)
+  fin = @interval(π/4 - 0.01)
+  n = 25
+  for t in 0:n
+    println(u)
+    @time(test(u*start + (1-u)*fin, frame = t))
+    println("Frame $t =========")
+  end
 end
 
 end
