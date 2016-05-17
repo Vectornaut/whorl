@@ -31,7 +31,7 @@ type CayleyCrawler
   function CayleyCrawler(j, k, up, mode, range, ascent)
     # set parameters
     if mode != ROOT
-      down = (up+j) % (2j)
+      down = mod(up+j, 2j)
     else
       down = nothing
     end

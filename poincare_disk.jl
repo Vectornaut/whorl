@@ -2,7 +2,7 @@ module PoincaréDisk
 
 using Compose
 
-export möbius_map, repeller, geodesic, horotriangle, geodesic_orbit
+export möbius_map, repeller, geodesic, ideal_edges, ideal_path, horotriangle, geodesic_orbit
 
 # === möbius transformations
 
@@ -33,15 +33,46 @@ function repeller{T <: Number}(m::Matrix{T})
   line[1] / line[2]
 end
 
-# draw the geodesic between two points on the boundary of the Poincaré disk
-function geodesic(tail::Number, head::Number)
+# a version of reim for use in Compose paths
+reim_measure(z::Number) = (real(z)*cx, imag(z)*cy)
+
+# write the curveto command for a geodesic between two points on the boundary of
+# the Poincaré disk
+function geodesic_curveto(tail::Number, head::Number)
   # this is Clinton Curry's method for approximating geodesics by cubic curves
   # http://clintoncurry.nfshost.com/math/poincare-geodesics.html
   # the _max_ in k is a kludge to avoid square roots of negative numbers
   k = 4/3 * (1/(1 + sqrt(max(1 - abs2(head + tail)/4, 0))) - 1/4)
+  [:C, reim_measure(k*tail)..., reim_measure(k*head)..., reim_measure(head)...]
+end
+
+# draw the geodesic between two points on the boundary of the Poincaré disk
+geodesic(tail::Number, head::Number) =
   compose(
     context(units=UnitBox(-1, -1, 2, 2)),
-    curve(reim(tail), reim(k*tail), reim(k*head), reim(head))
+    path([
+      :M, reim_measure(tail)...,
+      geodesic_curveto(tail, head)...
+    ])
+  )
+
+# draw an ideal polygon as a sequence of geodesics, good for stroking
+function ideal_edges(verts::Number...)
+  n = length(verts)
+  cyc = i -> mod(i, n) + 1
+  compose([geodesic(verts[cyc(i)], verts[cyc(i+1)]) for i in 0:(n-1)]...)
+end
+
+# draw an ideal polygon as a path, good for filling
+function ideal_path(verts::Number...)
+  n = length(verts)
+  cyc = i -> mod(i, n) + 1
+  compose(
+    context(units=UnitBox(-1, -1, 2, 2)),
+    path([
+      :M, reim_measure(verts[1])...,
+      [geodesic_curveto(verts[cyc(i)], verts[cyc(i+1)]) for i in 0:(n-1)]...
+    ])
   )
 end
 
@@ -112,46 +143,5 @@ horotriangle(osc::Number, a::Number, b::Number, cnt::Integer, spacing::Number, e
     horoleaves(a, b, osc, cnt, spacing, eps),
     horoleaves(b, osc, a, cnt, spacing, eps),
   )
-
-# === orbit drawing
-
-# draw the orbit of a geodesic under a finitely generated group of isometries
-function geodesic_orbit(
-  tail::Number,
-  head::Number,
-  sym,
-  depth::Integer,
-  eps::Number = 1e-2,
-  last_sym = nothing
-)
-  orbit = []
-  
-  # draw the geodesic, if it's long enough to bother with
-  if abs2(head - tail) > eps*eps
-    push!(orbit, geodesic(tail, head))
-  end
-  
-  # if we're going deeper into the orbit, apply the generators and their
-  # inverses and recurse
-  if depth > 0
-    for s in 1:length(sym)
-      # apply generator
-      if last_sym != -s
-        f_head = möbius_map(sym[s], head)
-        f_tail = möbius_map(sym[s], tail)
-        push!(orbit, geodesic_orbit(f_tail, f_head, sym, depth - 1, eps, s))
-      end
-      
-      # apply inverse generator
-      if last_sym != s
-        b_head = möbius_map(inv(sym[s]), head)
-        b_tail = möbius_map(inv(sym[s]), tail)
-        push!(orbit, geodesic_orbit(b_tail, b_head, sym, depth - 1, eps, -s))
-      end
-    end
-  end
-  
-  compose(context(), orbit...)
-end
 
 end
