@@ -284,41 +284,4 @@ function twostep{R <: AbstractInterval}(a::Cocycle{R})
   Cocycle(new_blocks_by_in, new_blocks_by_out)
 end
 
-lamination{R <: AbstractInterval}(a::Cocycle{R}, sym, depth = 0) =
-  scancollect(
-    a, Context,
-    thru_fn = (h, k) -> geodesic_orbit(
-      repeller(k.b_transit),
-      repeller(h.f_transit),
-      sym, depth
-    )
-  )
-
-foliage(a::Cocycle) =
-  scancollect(
-    a, Context,
-    f_fn = (left, right, pivot) -> compose(
-      context(),
-      horotriangle(
-        repeller(pivot.b_transit),
-        repeller(left.f_transit),
-        repeller(right.f_transit),
-        69, 1/21, 4e-3
-      ),
-      stroke("coral"),
-      linewidth(0.1mm)
-    ),
-    b_fn = (left, right, pivot) -> compose(
-      context(),
-      horotriangle(
-        repeller(pivot.f_transit),
-        repeller(right.b_transit),
-        repeller(left.b_transit),
-        69, 1/21, 4e-3
-      ),
-      stroke("deeppink"),
-      linewidth(0.1mm)
-    )
-  )
-
 end
