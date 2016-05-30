@@ -4,7 +4,7 @@ include("caterpillar.jl")
 
 module Testing
 
-using ValidatedNumerics, Compose, Colors, IntervalExchange, Caterpillar, PoincaréDisk, Regular, Crawl
+using ValidatedNumerics, IntervalExchange, Caterpillar, PoincaréDisk, Regular, Crawl
 
 type Triangle
   a::Complex
@@ -18,108 +18,88 @@ end
 
 Base.isless(p::Triangle, q::Triangle) = p.gap < q.gap
 
-function dot_orbiter(m)
-  w = möbius_map(m, 0)
-  compose(
-    context(units=UnitBox(-1, -1, 2, 2)),
-    (context(real(w) - 0.01, imag(w) - 0.01, 0.02, 0.02), circle())
-  )
+type Jump{T <: Number, R <: AbstractInterval}
+  op::Matrix{T}
+  loc::R
+  
+  function Jump(left, right, pivot, loc)
+    left_sc = left / det([left pivot])
+    right_sc = right / det([right pivot])
+    new([left_sc pivot] / [right_sc pivot], loc)
+  end
 end
 
-triangle_orbiter(p::Triangle) =
-  m -> begin
-    a = möbius_map(m, p.a)
-    b = möbius_map(m, p.b)
-    c = möbius_map(m, p.pivot)
-    leafcolor = [
-      "deeppink",
-      "orangered",
-      "gold",
-      "purple"
-    ][p.sing]
-    return compose(
-      context(),
-      (context(),
-        ideal_edges(a, b, c),
-        stroke("black"),
-        fill(nothing)
-      ),
-      (context(),
-        ideal_path(a, b, c),
-        fill(leafcolor)
-      ),
-      ##(horotriangle(a, b, c, 60, 1/11), stroke(leafcolor)),
-      linewidth(0.1mm)
-    )
-  end
-
-function test{R <: AbstractInterval}(angle_offset::R = @interval(1/11); svg = false)
+function test{R <: AbstractInterval}(angle_offset::R = @interval(1/11))
   # set up cocycle
-  a = twisted_caterpillar(@interval(3π/4) + angle_offset, Regular.generators(2))
-  #=
-  for h in a.blocks_by_in
-    println(h)
+  a_orig = twisted_caterpillar(@interval(3π/4) + angle_offset, Regular.generators(2))
+  for b in a_orig.blocks_by_in
+    println(b)
   end
-  println("by in ---------")
-  for h in a.blocks_by_out
-    println(h)
-  end
-  println("by out ---------")
-  =#
   
   # evolve cocycle
-  for i in 1:3
+  a = a_orig
+  for i in 1:4
     a = @time(twostep(a))
-    println("$(length(a.blocks_by_in)) blocks by in")
-    println("$(length(a.blocks_by_out)) blocks by out")
+    println("$(length(a.blocks_by_in)) blocks")
     println("$i ~~~~~~~~~")
   end
   
-  # find the widest triangle for each singularity
-  triangles = scancollect(a, Triangle,
-    b_fn = (left, right, pivot) -> Triangle(
-      repeller(right.b_transit),
-      repeller(left.b_transit),
-      repeller(pivot.f_transit),
-      left.sing
+  # compute abelianization jumps
+  ab_jumps = scancollect(a, Jump,
+    f_fn = (left, right, pivot) -> Jump{Complex, Interval{Float64}}(
+      stable(left.f_transit),
+      stable(right.f_transit),
+      stable(pivot.b_transit),
+      left.in_right
+    ),
+    b_fn = (left, right, pivot) -> Jump{Complex, Interval{Float64}}(
+      stable(left.b_transit),
+      stable(right.b_transit),
+      stable(pivot.f_transit),
+      left.out_right
     )
   )
-  widest = Triangle[]
-  for sing in 1:4
-    push!(widest, maximum(filter(p -> p.sing == sing, triangles)))
-  end
   
+  println("\n$(length(ab_jumps)) jumps\n")
+  
+  big_bl = a_orig.blocks_by_in[4]
+  y = big_bl.in_left + 0.01
+  x = big_bl.out_left + 0.01
+  println("x = $x\ny = $y\n")
+  
+  fine_bl_f = nothing
+  fine_bl_b = nothing
+  for b in a.blocks_by_in
+    if strictprecedes(b.in_left, y) && strictprecedes(y, b.in_right)
+      fine_bl_f = b
+    end
+    if strictprecedes(b.out_left, y) && strictprecedes(y, b.out_right)
+      fine_bl_b = b
+    end
+    if fine_bl_f != nothing && fine_bl_b != nothing
+      break
+    end
+  end
+  println("fine blocks\n$fine_bl_f\n$fine_bl_b\ncontain y\n")
+  println("forward-stable line: $(repeller(fine_bl_f.f_transit))")
+  println("backward-stable line: $(repeller(fine_bl_b.b_transit))\n")
+  
+  dev_jumps = filter(
+    j -> strictprecedes(y, j.loc) && strictprecedes(j.loc, x),
+    ab_jumps
+  )
+  dev = prod([j.op for j in dev_jumps])
+  hol = dev * big_bl.f_transit
+  vals, vecs = eig(hol)
+  println("eigenvalues:\n$(vals)")
+  println("stable lines:\n$(vecs[1,1]/vecs[2,1])\n$(vecs[1,2]/vecs[2,2])")
+  
+  #=
   # enumerate symmetry group elements
   transit = generators(2)
   transit = [transit; [inv(t) for t in transit]]
   crawler = CayleyCrawler(4, 4, 2)
   findhome!(crawler, transit)
-  
-  # draw poincaré disk
-  disk = compose(context(),
-    (context(), circle(), fill("white"), stroke(nothing)),
-    (context(), rectangle(), fill("gainsboro"), stroke(nothing))
-  )
-  
-  # draw dots
-  glass = RGBA(0.0, 0.8, 0.6, 0.2)
-  dots = compose(context(), mapcollect(dot_orbiter, crawler)..., fill(glass))
-  
-  # draw triangle lifts
-  tri = vcat([mapcollect(triangle_orbiter(p), crawler) for p in widest]...)
-  tri_pic = compose(context(), tri...)
-  
-  #=
-  # draw lamination and horocycle foliation
-  lam = compose(context(), lamination(a, generators(2), 3)..., stroke("midnightblue"), linewidth(0.1mm))
-  fol = compose(context(), foliage(a)...)
-  =#
-  
-  draw(PDF("triangle_test.pdf", 7cm, 7cm), compose(tri_pic, disk))
-  draw(PDF("crawler_test.pdf", 7cm, 7cm), compose(dots, disk))
-  #=
-  draw(PDF("laminated.pdf", 7cm, 7cm), compose(lam, disk))
-  draw(PDF("foliated.pdf", 7cm, 7cm), compose(lam, fol, disk))
   =#
 end
 

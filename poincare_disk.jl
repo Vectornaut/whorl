@@ -2,7 +2,7 @@ module PoincaréDisk
 
 using Compose
 
-export möbius_map, repeller, geodesic, ideal_edges, ideal_path, horotriangle, geodesic_orbit
+export möbius_map, stable, repeller, geodesic, ideal_edges, ideal_path, horotriangle, geodesic_orbit
 
 # === möbius transformations
 
@@ -20,13 +20,17 @@ end
 
 # === geodesics and horocycles
 
+# find the stable line of an element of GL(2,C)
+function stable{T <: Number}(m::Matrix{T})
+  # when you pass a matrix of type Hermitian to eigfact!, it calls LAPACK's
+  # sygvd function, which puts the eigenvalues in ascending order. that means
+  # the first eigenvector is the one that shrinks the most.
+  eigvecs(Hermitian(m' * m))[:, 1]
+end
+
 # find the repelling fixed point of a translation of the Poincaré disk
 function repeller{T <: Number}(m::Matrix{T})
-  # i'm assuming eigfact returns the eigenvalues of a hermitian matrix in
-  # ascending order. that seems to be true, but i can't see why: even for
-  # hermitian matrices, eigfact calls LAPACK's geevx rather than heevx, so
-  # there shouldn't be any guarantee on the eigenvalue ordering.
-  line = eigvecs(Hermitian(m' * m))[:, 1]
+  line = stable(m)
   
   # we're safe from small denominators here, because the ratio is on the unit
   # circle
