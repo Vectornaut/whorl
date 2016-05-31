@@ -18,11 +18,11 @@ end
 
 Base.isless(p::Triangle, q::Triangle) = p.gap < q.gap
 
-type Jump{T <: Number, R <: AbstractInterval}
+type OldJump{T <: Number, R <: AbstractInterval}
   op::Matrix{T}
   loc::R
   
-  function Jump(left, right, pivot, loc)
+  function OldJump(left, right, pivot, loc)
     left_sc = left / det([left pivot])
     right_sc = right / det([right pivot])
     new([left_sc pivot] / [right_sc pivot], loc)
@@ -45,24 +45,30 @@ function test{R <: AbstractInterval}(angle_offset::R = @interval(1/11))
   end
   
   # compute abelianization jumps
-  ab_jumps = scancollect(a, Jump,
-    f_fn = (left, right, pivot) -> Jump{Complex, Interval{Float64}}(
+  #=
+  println("\n==== old code ====")
+  ab_jumps = scancollect(a, OldJump,
+    f_fn = (left, right, pivot) -> OldJump{Complex, Interval{Float64}}(
       stable(left.f_transit),
       stable(right.f_transit),
       stable(pivot.b_transit),
       left.in_right
     ),
-    b_fn = (left, right, pivot) -> Jump{Complex, Interval{Float64}}(
+    b_fn = (left, right, pivot) -> OldJump{Complex, Interval{Float64}}(
       stable(left.b_transit),
       stable(right.b_transit),
       stable(pivot.f_transit),
       left.out_right
     )
   )
+  =#
+  
+  println("\n|||| new code ||||")
+  ab_jumps = scancollect(a, Jump, f_fn = f_jump, b_fn = b_jump)
   
   println("\n$(length(ab_jumps)) jumps\n")
   
-  big_bl = a_orig.blocks_by_in[4]
+  big_bl = a_orig.blocks_by_in[2]
   y = big_bl.in_left + 0.01
   x = big_bl.out_left + 0.01
   println("x = $x\ny = $y\n")

@@ -4,7 +4,7 @@ module IntervalExchange
 
 using ValidatedNumerics, Compose, PoincaréDisk
 
-export Cocycle, missed_connection, scancollect, twostep, lamination, foliage
+export Cocycle, missed_connection, scancollect, twostep, Jump, f_jump, b_jump
 
 # === exchangers
 
@@ -282,6 +282,41 @@ function twostep{R <: AbstractInterval}(a::Cocycle{R})
   new_blocks_by_in = sort(new_blocks, lt = in_isless)
   new_blocks_by_out = sort(new_blocks, lt = out_isless)
   Cocycle(new_blocks_by_in, new_blocks_by_out)
+end
+
+# === abelianization
+
+type Jump{T <: Number, R <: AbstractInterval}
+  op::Matrix{T}
+  loc::R
+end
+
+function jumpshear{T <: Number}(new_ln::Array{T}, old_ln::Array{T}, pivot::Array{T})
+  new_sc = new_ln / det([new_ln pivot])
+  old_sc = old_ln / det([old_ln pivot])
+  [new_sc pivot] / [old_sc pivot]
+end
+
+function f_jump{T <: Exchanger}(left::T, right::T, pivot::T)
+  Jump(
+    jumpshear(
+      stable(left.f_transit),
+      stable(right.f_transit),
+      stable(pivot.b_transit)
+    ),                                  # op
+    hull(left.in_right, right.in_left) # loc
+  )
+end
+
+function b_jump{T <: Exchanger}(left::T, right::T, pivot::T)
+  Jump(
+    jumpshear(
+      stable(left.b_transit),
+      stable(right.b_transit),
+      stable(pivot.f_transit)
+    ),                                  # op
+    hull(left.out_right, right.out_left) # loc
+  )
 end
 
 end
