@@ -4,7 +4,7 @@ module IntervalExchange
 
 using ValidatedNumerics, Compose, PoincaréDisk
 
-export Cocycle, missed_connection, scancollect, twostep, Jump, f_jump, b_jump
+export Cocycle, missed_connection, scancollect, twostep, Jump, FJump, BJump
 
 # === exchangers
 
@@ -31,10 +31,26 @@ type Exchanger{R <: AbstractInterval}
   f_transit
   b_transit
   
+  # when we build an interval exchange cocycle from scratch, we label each
+  # block with its in and out indices. by keeping track of this information
+  # during composition, we can remember which blocks of the original cocycle the
+  # composed exchanger starts and ends in
+  orig_in::Integer
+  orig_out::Integer
+  
   # the singularity at the right endpoint
   sing
   
-  function Exchanger(in_left, in_right, f_shift, f_transit, b_transit, sing = nothing)
+  function Exchanger(
+    in_left,
+    in_right,
+    f_shift,
+    f_transit,
+    b_transit,
+    orig_in,
+    orig_out,
+    sing = nothing
+  )
     new(
       in_left,            # in_left
       in_right,           # in_right
@@ -43,6 +59,8 @@ type Exchanger{R <: AbstractInterval}
       f_shift,            # f_shift
       f_transit,          # f_transit
       b_transit,          # b_transit
+      orig_in,            # orig_in
+      orig_out,           # orig_out
       sing                # sing
     )
   end
@@ -122,6 +140,8 @@ function pipe{R <: AbstractInterval}(h::Exchanger{R}, k::Exchanger{R})
     h.f_shift + k.f_shift,
     h.f_transit * k.f_transit,
     k.b_transit * h.b_transit,
+    k.orig_in,
+    h.orig_out,
     new_sing
   )
 end
@@ -183,7 +203,8 @@ function Cocycle{
         pad_in_breaks[t+1],
         pad_out_breaks[s] - pad_in_breaks[t],
         f_transit[t],
-        inv(f_transit[t])
+        inv(f_transit[t]),
+        t, s
       )
     )
   end
@@ -241,9 +262,9 @@ end
 function scancollect(
   a::Cocycle,
   output_type::DataType;
-  thru_fn::Union{Function, Void} = nothing,
-  f_fn::Union{Function, Void} = nothing,
-  b_fn::Union{Function, Void} = nothing
+  thru_fn = nothing,
+  f_fn = nothing,
+  b_fn = nothing
 )
   output = output_type[]
   s = 1
@@ -286,10 +307,7 @@ end
 
 # === abelianization
 
-type Jump{T <: Number, R <: AbstractInterval}
-  op::Matrix{T}
-  loc::R
-end
+abstract Jump
 
 function jumpshear{T <: Number}(new_ln::Array{T}, old_ln::Array{T}, pivot::Array{T})
   new_sc = new_ln / det([new_ln pivot])
@@ -297,26 +315,44 @@ function jumpshear{T <: Number}(new_ln::Array{T}, old_ln::Array{T}, pivot::Array
   [new_sc pivot] / [old_sc pivot]
 end
 
-function f_jump{T <: Exchanger}(left::T, right::T, pivot::T)
-  Jump(
-    jumpshear(
-      stable(left.f_transit),
-      stable(right.f_transit),
-      stable(pivot.b_transit)
-    ),                                  # op
-    hull(left.in_right, right.in_left) # loc
-  )
+type FJump <: Jump
+  op
+  left::Integer
+  right::Integer
+  pivot::Integer
+  
+  function FJump{E <: Exchanger}(left::E, right::E, pivot::E)
+    new(
+      jumpshear(
+        stable(left.f_transit),
+        stable(right.f_transit),
+        stable(pivot.b_transit)
+      ),                         # op
+      left.orig_in,              # left
+      right.orig_in,             # right
+      pivot.orig_out             # pivot
+    )
+  end
 end
 
-function b_jump{T <: Exchanger}(left::T, right::T, pivot::T)
-  Jump(
-    jumpshear(
-      stable(left.b_transit),
-      stable(right.b_transit),
-      stable(pivot.f_transit)
-    ),                                  # op
-    hull(left.out_right, right.out_left) # loc
-  )
+type BJump <: Jump
+  op
+  left::Integer
+  right::Integer
+  pivot::Integer
+  
+  function BJump{E <: Exchanger}(left::E, right::E, pivot::E)
+    new(
+      jumpshear(
+        stable(left.b_transit),
+        stable(right.b_transit),
+        stable(pivot.f_transit)
+      ),                         # op
+      left.orig_out,             # left
+      right.orig_out,            # right
+      pivot.orig_in              # pivot
+    )
+  end
 end
 
 end

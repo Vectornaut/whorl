@@ -45,8 +45,11 @@ function test{R <: AbstractInterval}(angle_offset::R = @interval(1/11))
   end
   
   # compute abelianization jumps
+  index = 1
+  big_bl = a_orig.blocks_by_in[index]
+  
   #=
-  println("\n==== old code ====")
+  println("\n==== old code, block $index ====")
   ab_jumps = scancollect(a, OldJump,
     f_fn = (left, right, pivot) -> OldJump{Complex, Interval{Float64}}(
       stable(left.f_transit),
@@ -61,14 +64,9 @@ function test{R <: AbstractInterval}(angle_offset::R = @interval(1/11))
       left.out_right
     )
   )
-  =#
-  
-  println("\n|||| new code ||||")
-  ab_jumps = scancollect(a, Jump, f_fn = f_jump, b_fn = b_jump)
   
   println("\n$(length(ab_jumps)) jumps\n")
   
-  big_bl = a_orig.blocks_by_in[2]
   y = big_bl.in_left + 0.01
   x = big_bl.out_left + 0.01
   println("x = $x\ny = $y\n")
@@ -94,6 +92,20 @@ function test{R <: AbstractInterval}(angle_offset::R = @interval(1/11))
     j -> strictprecedes(y, j.loc) && strictprecedes(j.loc, x),
     ab_jumps
   )
+  =#
+  
+  println("\n|||| new code, block $index ||||")
+  ab_jumps = scancollect(a, Jump, f_fn = FJump, b_fn = BJump)
+  dev_jumps = filter(
+    j -> if isa(j, FJump)
+      big_bl.orig_in <= j.left && j.pivot < big_bl.orig_out
+    elseif isa(j, BJump)
+      big_bl.orig_in <= j.pivot && j.left < big_bl.orig_out
+    end,
+    ab_jumps
+  )
+  
+  # output
   dev = prod([j.op for j in dev_jumps])
   hol = dev * big_bl.f_transit
   vals, vecs = eig(hol)
