@@ -29,9 +29,9 @@ type OldJump{T <: Number, R <: AbstractInterval}
   end
 end
 
-function test{R <: AbstractInterval}(angle_offset::R = @interval(1/11))
+function test(index::Integer)
   # set up cocycle
-  a_orig = twisted_caterpillar(@interval(3π/4) + angle_offset, Regular.generators(2))
+  a_orig = twisted_caterpillar(@interval(3π/4) + 1//11, Regular.generators(2))
   for b in a_orig.blocks_by_in
     println(b)
   end
@@ -45,10 +45,8 @@ function test{R <: AbstractInterval}(angle_offset::R = @interval(1/11))
   end
   
   # compute abelianization jumps
-  index = 1
   big_bl = a_orig.blocks_by_in[index]
   
-  #=
   println("\n==== old code, block $index ====")
   ab_jumps = scancollect(a, OldJump,
     f_fn = (left, right, pivot) -> OldJump{Complex, Interval{Float64}}(
@@ -69,6 +67,7 @@ function test{R <: AbstractInterval}(angle_offset::R = @interval(1/11))
   
   y = big_bl.in_left + 0.01
   x = big_bl.out_left + 0.01
+  leftward = strictprecedes(y, x)
   println("x = $x\ny = $y\n")
   
   fine_bl_f = nothing
@@ -88,12 +87,16 @@ function test{R <: AbstractInterval}(angle_offset::R = @interval(1/11))
   println("forward-stable line: $(repeller(fine_bl_f.f_transit))")
   println("backward-stable line: $(repeller(fine_bl_b.b_transit))\n")
   
-  dev_jumps = filter(
-    j -> strictprecedes(y, j.loc) && strictprecedes(j.loc, x),
-    ab_jumps
-  )
-  =#
+  jump_filter = leftward ?
+    j -> strictprecedes(y, j.loc) && strictprecedes(j.loc, x) :
+    j -> strictprecedes(x, j.loc) && strictprecedes(j.loc, y)
+  dev_jumps = filter(jump_filter, ab_jumps)
+  dev = prod([j.op for j in dev_jumps])
+  if !leftward
+    dev = inv(dev)
+  end
   
+  #=
   println("\n|||| new code, block $index ||||")
   ab_jumps = scancollect(a, Jump, f_fn = FJump, b_fn = BJump)
   dev_jumps = filter(
@@ -104,13 +107,26 @@ function test{R <: AbstractInterval}(angle_offset::R = @interval(1/11))
     end,
     ab_jumps
   )
+  dev = prod([j.op for j in dev_jumps])
+  =#
   
   # output
-  dev = prod([j.op for j in dev_jumps])
   hol = dev * big_bl.f_transit
   vals, vecs = eig(hol)
-  println("eigenvalues:\n$(vals)")
-  println("stable lines:\n$(vecs[1,1]/vecs[2,1])\n$(vecs[1,2]/vecs[2,2])")
+  println("jumps: $(length(dev_jumps))")
+  println("deviation:\n$dev\n")
+  println("holonomy:\n$hol\n")
+  println("eigenvalues:\n$vals\n")
+  println("eigenlines:\n$(vecs[1,1]/vecs[2,1])\n$(vecs[1,2]/vecs[2,2])\n")
+  
+  println("\n++++ newer code, block $index ++++")
+  a_ab = abelianize(a_orig, a, index)
+  return
+  #=
+  for i in 1:length(a_ab.blocks_by_in)
+    println("block $i\n$(a_ab.blocks_by_in[i].f_transit)\n")
+  end
+  =#
   
   #=
   # enumerate symmetry group elements

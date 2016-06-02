@@ -4,7 +4,7 @@ module IntervalExchange
 
 using ValidatedNumerics, Compose, PoincaréDisk
 
-export Cocycle, missed_connection, scancollect, twostep, Jump, FJump, BJump
+export Cocycle, missed_connection, scancollect, twostep, Jump, FJump, BJump, abelianize
 
 # === exchangers
 
@@ -316,43 +316,145 @@ function jumpshear{T <: Number}(new_ln::Array{T}, old_ln::Array{T}, pivot::Array
 end
 
 type FJump <: Jump
+  # the jump operator
   op
+  
+  # the indices of the left, right, and pivot blocks in the original cocycle
   left::Integer
   right::Integer
   pivot::Integer
   
+  # the stable lines
+  left_stable
+  right_stable
+  pivot_stable
+  
   function FJump{E <: Exchanger}(left::E, right::E, pivot::E)
+    left_stable = stable(left.f_transit)
+    right_stable = stable(right.f_transit)
+    pivot_stable = stable(pivot.b_transit)
     new(
-      jumpshear(
-        stable(left.f_transit),
-        stable(right.f_transit),
-        stable(pivot.b_transit)
-      ),                         # op
-      left.orig_in,              # left
-      right.orig_in,             # right
-      pivot.orig_out             # pivot
+      jumpshear(left_stable, right_stable, pivot_stable), # op
+      left.orig_in,                                       # left
+      right.orig_in,                                      # right
+      pivot.orig_out,                                     # pivot
+      left_stable,                                        # left_stable
+      right_stable,                                       # right_stable
+      pivot_stable                                        # pivot_stable
     )
   end
 end
 
 type BJump <: Jump
+  # the jump operator
   op
+  
+  # the indices of the left, right, and pivot blocks in the original cocycle
   left::Integer
   right::Integer
   pivot::Integer
   
+  # the stable lines
+  left_stable
+  right_stable
+  pivot_stable
+  
   function BJump{E <: Exchanger}(left::E, right::E, pivot::E)
+    left_stable = stable(left.b_transit)
+    right_stable = stable(right.b_transit)
+    pivot_stable = stable(pivot.f_transit)
     new(
-      jumpshear(
-        stable(left.b_transit),
-        stable(right.b_transit),
-        stable(pivot.f_transit)
-      ),                         # op
-      left.orig_out,             # left
-      right.orig_out,            # right
-      pivot.orig_in              # pivot
+      jumpshear(left_stable, right_stable, pivot_stable), # op
+      left.orig_out,                                      # left
+      right.orig_out,                                     # right
+      pivot.orig_in,                                      # pivot
+      left_stable,                                        # left_stable
+      right_stable,                                       # right_stable
+      pivot_stable                                        # pivot_stable
     )
   end
+end
+
+# this function takes in two versions of the same SL(2,C) cocycle---orig, which
+# was built from scratch using the Cocycle constructor, and iter, which has been
+# iterated using twostep or a similar function. it returns the abelianized
+# cocycle over the original interval exchange.
+function abelianize(orig::Cocycle, iter::Cocycle, index)
+  # build the abelianized cocycle, block by block
+  blocks_by_in = typeof(first(orig.blocks_by_in))[]
+  for bl in orig.blocks_by_in
+    # we want to compute the abelianized holonomy around the following path:
+    # - starting at the base segment, drive down the right lane of the left edge
+    #   of bl's in block
+    # - return to the base segment along the right lane of the left edge of bl's
+    #   out block
+    # - return to the starting point along the base segment
+    # in comments, we'll refer to the right lane of the left edge of bl's in
+    # block as y, the right lane of the left edge of bl's out block as x
+    
+    # check whether we'll be driving left or right when we return to the
+    # starting point along the base segment
+    leftward = strictprecedes(bl.in_left, bl.out_left)
+    
+    # set up a filter function that decides whether a given jump is on the way
+    # from the x to y
+    enroute = leftward ?
+      # going left
+      j -> if isa(j, FJump)
+          bl.orig_in <= j.left && j.pivot < bl.orig_out
+        elseif isa(j, BJump)
+          bl.orig_in <= j.pivot && j.left < bl.orig_out
+        end :
+      # going right
+      j -> if isa(j, FJump)
+          bl.orig_in > j.left && j.pivot >= bl.orig_out
+        elseif isa(j, BJump)
+          bl.orig_in > j.pivot && j.left >= bl.orig_out
+        end
+    
+    # compute the deviation from x to y by multiplying together all the
+    # abelianization jumps on the way from x to y along the base interval. the
+    # jumps come ordered from right to left, so we have to reverse the product
+    # if the path from x to y goes to the right.
+    ab_jumps = scancollect(iter, Jump, f_fn = FJump, b_fn = BJump)
+    dev = prod([j.op for j in filter(enroute, ab_jumps)])
+    if !leftward
+      dev = inv(dev)
+    end
+    
+    # compose the deviation with the parallel transport along the right lane of
+    # the left edge of bl to get the abelianized holonomy
+    ab_hol = dev * bl.f_transit
+    
+    # switch to the frame given by the forward- and backward-stable lines at y,
+    # where the abelianized holonomy is diagonal
+    edgejump = ab_jumps[
+      findfirst(j -> isa(j, FJump) && j.right == bl.orig_in, ab_jumps)
+    ]
+    stableframe = [edgejump.right_stable edgejump.pivot_stable]
+    diag_hol = stableframe \ ab_hol * stableframe
+    
+    if bl.orig_in == index
+      println("leftward: $leftward")
+      println("jumps: $(length(filter(enroute, ab_jumps)))")
+      println("deviation:\n$dev\n")
+      println("holonomy:\n$ab_hol\n")
+      println("diagonal holonomy:\n$diag_hol\n")
+      println("stable lines:\n$(stableframe[1,1]/stableframe[2,1])\n$(stableframe[1,2]/stableframe[2,2])\n")
+    end
+    
+    # add the abelianized version of bl to the abelianized cocycle
+    ab_bl = deepcopy(bl)
+    ab_bl.f_transit = diag_hol
+    ab_bl.b_transit = inv(diag_hol)
+    push!(blocks_by_in, ab_bl)
+  end
+  
+  # return
+  Cocycle(
+    blocks_by_in,
+    sort(blocks_by_in, by = b -> b.orig_out)
+  )
 end
 
 end
