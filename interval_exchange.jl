@@ -379,7 +379,7 @@ end
 # was built from scratch using the Cocycle constructor, and iter, which has been
 # iterated using twostep or a similar function. it returns the abelianized
 # cocycle over the original interval exchange.
-function abelianize(orig::Cocycle, iter::Cocycle, index)
+function abelianize(orig::Cocycle, iter::Cocycle)
   # build the abelianized cocycle, block by block
   blocks_by_in = typeof(first(orig.blocks_by_in))[]
   for bl in orig.blocks_by_in
@@ -433,15 +433,6 @@ function abelianize(orig::Cocycle, iter::Cocycle, index)
     ]
     stableframe = [edgejump.right_stable edgejump.pivot_stable]
     diag_hol = stableframe \ ab_hol * stableframe
-    
-    if bl.orig_in == index
-      println("leftward: $leftward")
-      println("jumps: $(length(filter(enroute, ab_jumps)))")
-      println("deviation:\n$dev\n")
-      println("holonomy:\n$ab_hol\n")
-      println("diagonal holonomy:\n$diag_hol\n")
-      println("stable lines:\n$(stableframe[1,1]/stableframe[2,1])\n$(stableframe[1,2]/stableframe[2,2])\n")
-    end
     
     # add the abelianized version of bl to the abelianized cocycle
     ab_bl = deepcopy(bl)
