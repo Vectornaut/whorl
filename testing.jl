@@ -32,18 +32,18 @@ triangle_orbiter(p::Triangle) =
     b = möbius_map(m, p.b)
     c = möbius_map(m, p.pivot)
     leafcolor = [
+      #=
       # slat shades
       RGB(217/255, 218/255, 255/255),
       RGB(219/255, 174/255, 236/255),
       RGB(240/255, 248/255, 250/255),
       RGB(255/255, 105/255, 170/255)
-      #=
+      =#
       # mesa
       RGB(255/255, 1/255, 73/255),
       RGB(255/255, 121/255, 1/255),
       RGB(215/255, 0/255, 132/255),
       RGB(255/255, 210/255, 0/255)
-      =#
       #=
       # limeade
       RGB(255/255, 1/255, 73/255),
@@ -139,6 +139,7 @@ function movie()
   fin = @interval(π/4 - 0.01)
   n = 25
   for t in 0:n
+    u = easing(t/n)
     println(u)
     @time(test(u*start + (1-u)*fin, frame = t))
     println("Frame $t =========")
