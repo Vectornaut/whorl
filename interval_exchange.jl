@@ -309,6 +309,8 @@ end
 
 abstract Jump
 
+Base.isless(p::Jump, q::Jump) = p.gap < q.gap
+
 function jumpshear{T <: Number}(new_ln::Array{T}, old_ln::Array{T}, pivot::Array{T})
   new_sc = new_ln / det([new_ln pivot])
   old_sc = old_ln / det([old_ln pivot])
@@ -319,6 +321,9 @@ type FJump <: Jump
   # the jump operator
   op
   
+  # the singularity where the left and right blocks meet
+  sing::Integer
+  
   # the indices of the left, right, and pivot blocks in the original cocycle
   left::Integer
   right::Integer
@@ -329,18 +334,23 @@ type FJump <: Jump
   right_stable
   pivot_stable
   
+  # the square of the sine distance between the left and right stable lines
+  gap
+  
   function FJump{E <: Exchanger}(left::E, right::E, pivot::E)
     left_stable = stable(left.f_transit)
     right_stable = stable(right.f_transit)
     pivot_stable = stable(pivot.b_transit)
     new(
       jumpshear(left_stable, right_stable, pivot_stable), # op
+      left.sing,                                          # sing
       left.orig_in,                                       # left
       right.orig_in,                                      # right
       pivot.orig_out,                                     # pivot
       left_stable,                                        # left_stable
       right_stable,                                       # right_stable
-      pivot_stable                                        # pivot_stable
+      pivot_stable,                                       # pivot_stable
+      1 - abs(dot(left_stable, right_stable))             # gap
     )
   end
 end
@@ -349,6 +359,9 @@ type BJump <: Jump
   # the jump operator
   op
   
+  # the singularity where the left and right blocks meet
+  sing::Integer
+  
   # the indices of the left, right, and pivot blocks in the original cocycle
   left::Integer
   right::Integer
@@ -359,18 +372,23 @@ type BJump <: Jump
   right_stable
   pivot_stable
   
+  # the square of the sine distance between the left and right stable lines
+  gap
+  
   function BJump{E <: Exchanger}(left::E, right::E, pivot::E)
     left_stable = stable(left.b_transit)
     right_stable = stable(right.b_transit)
     pivot_stable = stable(pivot.f_transit)
     new(
       jumpshear(left_stable, right_stable, pivot_stable), # op
+      left.sing,                                          # sing
       left.orig_out,                                      # left
       right.orig_out,                                     # right
       pivot.orig_in,                                      # pivot
       left_stable,                                        # left_stable
       right_stable,                                       # right_stable
-      pivot_stable                                        # pivot_stable
+      pivot_stable,                                       # pivot_stable
+      1 - abs(dot(left_stable, right_stable))             # gap
     )
   end
 end
@@ -428,10 +446,23 @@ function abelianize(orig::Cocycle, iter::Cocycle)
     
     # switch to the frame given by the forward- and backward-stable lines at y,
     # where the abelianized holonomy is diagonal
-    edgejump = ab_jumps[
-      findfirst(j -> isa(j, FJump) && j.right == bl.orig_in, ab_jumps)
-    ]
-    stableframe = [edgejump.right_stable edgejump.pivot_stable]
+    stableframe = bl.orig_in == 1 ?
+      begin
+        # there's no jump over the left edge of the first in block, so the
+        # forward- and backward-stable lines come from the leftmost in and out
+        # blocks
+        f_stable = stable(iter.blocks_by_in[1].f_transit)
+        b_stable = stable(iter.blocks_by_out[1].b_transit)
+        [f_stable b_stable]
+      end :
+      begin
+        # find the jump over the left edge of the block and get the forward- and
+        # backward lines from there
+        edge = findfirst(j -> isa(j, FJump) && j.right == bl.orig_in, ab_jumps)
+        f_stable = ab_jumps[edge].right_stable
+        b_stable = ab_jumps[edge].pivot_stable
+        stableframe = [f_stable b_stable]
+      end
     diag_hol = stableframe \ ab_hol * stableframe
     
     # add the abelianized version of bl to the abelianized cocycle

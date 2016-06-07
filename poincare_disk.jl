@@ -2,7 +2,7 @@ module PoincaréDisk
 
 using Compose
 
-export möbius_map, stable, repeller, geodesic, ideal_edges, ideal_path, horotriangle, geodesic_orbit
+export möbius_map, stable, planeproj, geodesic, ideal_edges, ideal_path, horotriangle, geodesic_orbit
 
 # === möbius transformations
 
@@ -18,24 +18,18 @@ function möbius_deriv{T <: Number}(m::Matrix{T}, z)
   (m[1,1]*m[2,2] - m[1,2]*m[2,1]) / (u * u)
 end
 
-# === geodesics and horocycles
-
 # find the stable line of an element of GL(2,C)
 function stable{T <: Number}(m::Matrix{T})
   # when you pass a matrix of type Hermitian to eigfact!, it calls LAPACK's
   # sygvd function, which puts the eigenvalues in ascending order. that means
   # the first eigenvector is the one that shrinks the most.
-  eigvecs(Hermitian(m' * m))[:, 1]
+  eigvecs(Hermitian(m' * m))[:,1]
 end
 
-# find the repelling fixed point of a translation of the Poincaré disk
-function repeller{T <: Number}(m::Matrix{T})
-  line = stable(m)
-  
-  # we're safe from small denominators here, because the ratio is on the unit
-  # circle
-  line[1] / line[2]
-end
+# === points, geodesics, and horocycles
+
+# project a line in affine space to the complex plane
+planeproj{T <: Number}(v::Vector{T}) = v[1] / v[2]
 
 # a version of reim for use in Compose paths
 reim_measure(z::Number) = (real(z)*cx, imag(z)*cy)
@@ -55,7 +49,7 @@ geodesic(tail::Number, head::Number) =
   compose(
     context(units=UnitBox(-1, -1, 2, 2)),
     path([
-      :M, reim_measure(tail)...,
+      :M; reim_measure(tail)...;
       geodesic_curveto(tail, head)...
     ])
   )
@@ -74,7 +68,7 @@ function ideal_path(verts::Number...)
   compose(
     context(units=UnitBox(-1, -1, 2, 2)),
     path([
-      :M, reim_measure(verts[1])...,
+      :M; reim_measure(verts[1])...;
       [geodesic_curveto(verts[cyc(i)], verts[cyc(i+1)]) for i in 0:(n-1)]...
     ])
   )
