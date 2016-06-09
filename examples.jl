@@ -1,6 +1,6 @@
+include("caterpillar.jl")
 include("regular.jl")
 include("cayley_crawler.jl")
-include("caterpillar.jl")
 
 module Examples
 
@@ -13,8 +13,62 @@ using
   IntervalExchange,
   Caterpillar,
   PoincaréDisk,
-  Regular,
   Crawl
+
+import Regular
+
+# === abelianization
+
+# print a nicely formatted complex number
+function prettyprint(z::Number)
+  @printf("%8.3f %c %7.3fim", real(z), imag(z) < 0 ? '-' : '+', abs(imag(z)))
+end
+
+# print a nicely formatted complex matrix
+function prettyprint(m::Matrix, indent = 0)
+  for i in 1:size(m, 1)
+    print(" "^indent)
+    for j in 1:size(m, 2)
+      prettyprint(m[i,j])
+      print("   ")
+    end
+    println()
+  end
+end
+
+# given a matrix cocycle over an interval exchange, print the block translations
+# of the interval exchange along with the transition maps of the cocycle
+function printcocycle(a::Cocycle)
+  i = 0
+  for bl in a.blocks_by_in
+    i += 1
+    @printf("Block %-5d", i)
+    println("$bl\n")
+    prettyprint(bl.f_transit, 4)
+    println()
+  end
+end
+
+# print a "twisted caterpillar" cocycle and its abelianization
+function abelianization_ex()
+  # set up cocycle
+  orig = twisted_caterpillar(@interval(3π/4 + 1//11), Regular.generators(2))
+  
+  # evolve cocycle
+  iter = orig
+  for _ in 1:4
+    iter = twostep(iter)
+  end
+  
+  # abelianize cocycle
+  ab = abelianize(orig, iter)
+  
+  # output
+  println("=== original cocyle\n")
+  printcocycle(orig)
+  println("=== abelianized cocyle\n")
+  printcocycle(ab)
+end
 
 # === shear parameter plots
 
@@ -127,7 +181,7 @@ expconj(t) =
     expm(t*a)*g*expm(-t*a)
   end
 
-function shear_plot_example(; hires = false)
+function shear_plot_ex(; hires = false)
   perturbation = Matrix[
     traceless(1, 0, 0),
     traceless(0, 1, 0),
@@ -136,13 +190,13 @@ function shear_plot_example(; hires = false)
   ]
   
   # small perturbation
-  transit_sm = map(expconj(0.01), zip(generators(2), perturbation))
+  transit_sm = map(expconj(0.01), zip(Regular.generators(2), perturbation))
   data_sm = shear_data(transit_sm, hires ? 300 : 18)
   p_sm = shear_plot(data_sm)
   draw(PDF("small-perturbation.pdf", 30cm, 40cm), p_sm)
   
   # small perturbation
-  transit_lg = map(expconj(0.1), zip(generators(2), perturbation))
+  transit_lg = map(expconj(0.1), zip(Regular.generators(2), perturbation))
   data_lg = shear_data(transit_lg, hires ? 300 : 18)
   p_lg = shear_plot(data_lg)
   draw(PDF("large-perturbation.pdf", 30cm, 40cm), p_lg)
@@ -231,7 +285,7 @@ end
 
 function movie(; testframe = true)
   # enumerate symmetry group elements
-  transit = generators(2)
+  transit = Regular.generators(2)
   dbl_transit = [transit; [inv(t) for t in transit]]
   crawler = CayleyCrawler(4, 4, 2)
   findhome!(crawler, dbl_transit)
