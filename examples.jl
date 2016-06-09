@@ -4,121 +4,154 @@ include("caterpillar.jl")
 
 module Examples
 
-using Gadfly, Compose, Colors, ValidatedNumerics, IntervalExchange, Caterpillar, PoincaréDisk, Regular, Crawl
+using
+  Gadfly,
+  DataFrames,
+  Compose,
+  Colors,
+  ValidatedNumerics,
+  IntervalExchange,
+  Caterpillar,
+  PoincaréDisk,
+  Regular,
+  Crawl
 
-# === abelianized holonomy plots
+# === shear parameter plots
 
-function ab_hols(orig)
+# compute the shear parameters of an SL(2,C) cocycle
+function shears(orig)
   # evolve cocycle
   iter = orig
-  for i in 1:4
+  for _ in 1:4
     iter = twostep(iter)
   end
   
   # abelianize
   ab = abelianize(orig, iter)
-  [real(bl.f_transit[1,1]) for bl in ab.blocks_by_in]
-end
-
-make_sl(a::Number, b::Number, c::Number) = [a b; c (1 + b*c)/a]
-
-function remix(hols)
-  new_hols = [
-    hols[6],
-    hols[8]*hols[6],
-    hols[6]*hols[8]*hols[13]*hols[2]*hols[12]*hols[3]*hols[11]*hols[5]*hols[9],
-    hols[8]^3*hols[6]^3*hols[1]^2*hols[5]*hols[7]*hols[12]*hols[13]
-  ]
+  [bl.f_transit[1,1] for bl in ab.blocks_by_in]
 end
 
 # linspace doesn't work with Interval objects, so here's a slapdash replacement
 function grid(start, fin, res::Integer)
-  map(u -> (1-u)*start + u*fin, [@interval(t//res) for t in 0:res])
+  map(u -> (1-u)*start + u*fin, [@interval(t//(res-1)) for t in 0:res-1])
 end
 
-function regular_table(res::Integer)
-  transit = generators(2)
-  domain = grid(@interval(358//114), @interval(180//114), res)
-  hol_list = []
-  for angle in domain
-    print("=")
-    push!(hol_list, ab_hols(twisted_caterpillar(angle, transit)))
+# compute shear parameters of a "twisted caterpillar" cocycle, with the given
+# transition maps, over a range of angles, with the given resolution. the range
+# of angles goes roughly from π/2 to π. we use rational approximations for π/2
+# and π that are only accurate to about one part in 114, making it unlikely that
+# we'll get within machine precision of a saddle connection at any reasonable
+# resolution.
+function shear_data(transit, res::Integer)
+  angles = grid(@interval(358//114), @interval(180//114), res)
+  angle_col = []
+  block_col = []
+  real_shear_col = []
+  imag_shear_col = []
+  
+  bunchsize = max(div(length(angles), 10), 10)
+  i = 0
+  while i < length(angles)
+    println("Points $(i + 1) through $(min(i + bunchsize, length(angles)))")
+    @time(
+      for _ in 1:bunchsize
+        i += 1
+        if i > length(angles)
+          break
+        end
+        
+        x = shears(twisted_caterpillar(angles[i], transit))
+        append!(angle_col, collect(repeated(mid(angles[i]), length(x))))
+        append!(block_col, collect(1:length(x)))
+        append!(real_shear_col, map(real, x))
+        append!(imag_shear_col, map(imag, x))
+      end
+    )
   end
-  println()
-  (domain, hcat(hol_list...))
+  
+  DataFrame(
+    Any[angle_col, block_col, real_shear_col, imag_shear_col],
+    map(Symbol, ["angle", "block", "real(shear)", "imag(shear)"])
+  )
 end
 
-function poster_table(res::Integer)
-  transit = Matrix[
-    make_sl(2.1, 0.1, 0.2),
-    make_sl(1.9, 0.1, -0.1),
-    make_sl(2.2, -0.1, 0),
-    make_sl(1.8, 0.1, -0.2),
-    make_sl(2.3, 0, 0.2),
-    make_sl(0.8, 0.7, -0.6),
-    make_sl(0.9, -0.5, 0.7)
-  ]
-  domain = grid(@interval(358//114), @interval(180//114), res)
-  hol_list = []
-  for angle in domain
-    print("=")
-    push!(hol_list, remix(ab_hols(caterpillar_cocycle(angle, transit...))))
+function shear_plot(data)
+  # scale for angles
+  scale = Scale.x_continuous(minvalue = Float64(π/2), maxvalue = Float64(π))
+  
+  # ticks at the shortest saddle connections
+  saddle_ticks = Guide.xticks(
+    ticks = [
+      map(
+        t -> atan(t) + π/2,
+        [0, 1/4, 1/3, 1/2, 2/3, 3/4, 1, 4/3, 3/2, 2/1, 3/1, 4/1]
+      )
+      π
+    ],
+    label = false
+  )
+  
+  # themes
+  real_theme = Theme(
+    default_color = tacos[1],
+    default_point_size = 0.5mm,
+    highlight_width = 0mm,
+  )
+  imag_theme = Theme(
+    default_color = tacos[4],
+    default_point_size = 0.5mm,
+    highlight_width = 0mm,
+  )
+  
+  # plot
+  real_layer = layer(x = "angle", y = "real(shear)", Geom.point, real_theme)
+  imag_layer = layer(x = "angle", y = "imag(shear)", Geom.point, imag_theme)
+  plot(
+    data,
+    ygroup = "block",
+    Geom.subplot_grid(
+      real_layer, imag_layer,
+      scale, saddle_ticks,
+      free_y_axis = true
+    ),
+    Guide.xlabel("angle"),
+    Guide.ylabel("shear <b><i>by</i></b> block")
+  )
+end
+
+traceless(h::Number, x::Number, y::Number) = [h x; y -h]
+
+expconj(t) =
+  tup -> begin
+    g, a = tup
+    expm(t*a)*g*expm(-t*a)
   end
-  println()
-  (domain, hcat(hol_list...))
-end
 
-function poster_plot(domain, hol_table, hsize, vsize, name; special_ranges = false)
-  yranges = [0 1.3; 0 0.5; -0.05 0.01; -0.01 0.02]
-  ranges = [
-    Coord.Cartesian(
-      xmin = Float64(π/2), xmax = Float64(π),
-      ymin = yranges[i,1], ymax = yranges[i,2]
-    ) for i in 1:size(yranges, 1)
+function shear_plot_example(; hires = false)
+  perturbation = Matrix[
+    traceless(1, 0, 0),
+    traceless(0, 1, 0),
+    traceless(0, 0, 1),
+    traceless(-1, 0, 0)
   ]
-  graphs = [
-    plot(
-      x = map(mid, domain),
-      y = hol_table[i,:],
-      special_ranges ? ranges[i] : Coord.Cartesian(),
-      Geom.point,
-      Guide.xlabel(nothing),
-      Guide.ylabel("Coordinate $i"),
-      Theme(
-        default_color = parse(Colorant, "black"),
-        default_point_size = 0.75mm,
-        highlight_width = 0mm,
-        major_label_font = "Anaheim"
-      ),
-      Guide.xticks(
-        ticks = [
-          map(
-            t -> atan(t) + π/2,
-            [0, 1/4, 1/3, 1/2, 2/3, 3/4, 1, 4/3, 3/2, 2/1, 3/1, 4/1]
-          )
-          π
-        ],
-        label = false
-      ),
-      special_ranges ? Guide.yticks(ticks = yranges[i,:]) : Guide.yticks()
-    ) for i in 1:size(hol_table, 1)
-  ]
-  draw(PDF(name, hsize, vsize), vstack(graphs...))
-end
-
-function regular_example()
-  domain, hol_table = regular_table(300)
-  poster_plot(domain, hol_table, 44cm, 66cm, "regular-example.pdf")
-end
-
-function poster_example()
-  domain, hol_table = poster_table(300)
-  poster_plot(domain, hol_table, 44cm, 22cm, "poster-example.pdf", special_ranges = true)
+  
+  # small perturbation
+  transit_sm = map(expconj(0.01), zip(generators(2), perturbation))
+  data_sm = shear_data(transit_sm, hires ? 300 : 18)
+  p_sm = shear_plot(data_sm)
+  draw(PDF("small-perturbation.pdf", 30cm, 40cm), p_sm)
+  
+  # small perturbation
+  transit_lg = map(expconj(0.1), zip(generators(2), perturbation))
+  data_lg = shear_data(transit_lg, hires ? 300 : 18)
+  p_lg = shear_plot(data_lg)
+  draw(PDF("large-perturbation.pdf", 30cm, 40cm), p_lg)
 end
 
 # === geodesic lamination movie
 
-tacos = [
+# color scheme
+const tacos = [
   RGB(255/255, 1/255, 73/255),
   RGB(255/255, 121/255, 1/255),
   RGB(255/255, 210/255, 0/255),
@@ -133,6 +166,8 @@ function easing(t)
   (1 + (x / (1+1/26))) / 2
 end
 
+# given a jump j, return the function that takes a möbius transformation m and
+# applies it to the triangle associated with j
 orbiter(j::Jump) =
   m -> begin
     left = möbius_map(m, planeproj(j.left_stable))
@@ -147,7 +182,17 @@ orbiter(j::Jump) =
     )
   end
 
-function render{R <: AbstractInterval}(angle::R, transit, crawler::CayleyCrawler, orbiter; frame = nothing)
+# draw the complementary triangles of the geodesic lamination specified by the
+# "twisted caterpillar" cocycle with the given angle and transition maps. if a
+# frame number is specified, render an appropriately named bitmap to be used as
+# a frame of a movie. otherwise, render a PDF test frame
+function render{R <: AbstractInterval}(
+  angle::R,
+  transit,
+  crawler::CayleyCrawler,
+  orbiter;
+  frame = nothing
+)
   # set up cocycle
   orig = twisted_caterpillar(angle, transit)
   
