@@ -37,8 +37,28 @@ Now you're ready to run the example functions described below. Keep in mind that
 
 ### Abelianization
 
-Call `Examples.abelianization_ex()`. The environment will print a description of an SL<sub>2</sub> **C** cocycle over an interval exchange and its abelianization. You can verify that the abelianized cocycle splits as a product of **C**<sup>&#x00d7;</sup> cocycles by observing that its transition matrices are diagonal.
+Calling `Examples.abelianization_ex()` prints a description of an SL<sub>2</sub> **C** cocycle over an interval exchange and its abelianization. You can verify that the abelianized cocycle splits as a product of **C**<sup>&#x00d7;</sup> cocycles by observing that its transition matrices are diagonal.
+
+The interval exchange used in this example is a first-return map for the vertical flow on a genus-5 translation surface *&Sigma;*, which happens to be the translation double cover of a genus-2 half-translation surface *C*. The cocycle over the interval exchange comes from the holonomy representation of a hyperbolic structure on *C*. The diagonal entries of the abelianized transition matrices are shear coordinates of the hyperbolic structure.
 
 ### Shear parameter plots
 
+Calling `Examples.shear_plot_ex()` makes a plot showing how the shear coordinates described in the abelianization example depend on the vertical direction of *&Sigma;*. It also plots the generalized shear coordinates of two perturbed versions of the representation used in the abelianization example. The real and imaginary parts of the coordinates are plotted separately, in different colors. The coordinates of the unperturbed representation are real, as expected.
+
+The plots appear in the working directory, in files called `no-perturbation.pdf`, `small-perturbation.pdf`, and `large-perturbation.pdf`. By default, `shear_plot_ex` produces very low-resolution plots, keeping the computation under 20 seconds on my laptop. You can get high-resolution plots by calling `Examples.shear_plot_ex(highres = true)`. The computation takes about 5 minutes on my laptop, but the results are worth it.
+
+You can try out different perturbations by changing the array `perturbation` in the source code for `shear_plot_ex` and calling `include("examples.jl")` again. This reloads the module `Examples`, redefining the functions it provides.
+
 ### Geodesic lamination movie
+
+The surface *C* described in the abelianization example comes with both a half-translation structure and a hyperbolic structure. The vertical foliation of the half-translation structure &ldquo;snaps tight&rdquo; to a geodesic lamination with respect to the hyperbolic structure. Calling `Examples.movie()` draws that geodesic lamination on the universal cover of *C*. More precisely, it draws the four ideal triangles that make up the complement of the lamination, with a different color for each triangle. The picture appears in the working directory, in the file `triangle_test.pdf`.
+
+Calling `Examples.movie(testframe = false)` varies the vertical direction of *C* and draws the geodesic lamination for each direction. The pictures appear in the subdirectory `triangle_mov`. If you have [ImageMagick](http://www.imagemagick.org/script/convert.php) installed, running the script `splice` from inside `triangle_mov` splices the pictures together into an animated GIF.
+
+### Looking under the hood
+
+You can learn about the functions that make up Whorl by calling them from the interactive environment and examining the objects they return. For example, let's say you want to know more about the hyperbolic structure on *C* that features in all of the examples above. The holonomy representation of this hyperbolic structure enters our computations through a call to `Regular.generators(2)`, which returns a list of matrices. You can see the list by calling
+
+    map(Examples.prettyprint, Regular.generators(2))
+
+from the interactive environment. If the module prefixes get annoying to type, you can remove the need for them by making `using` statements from the interactive environment.
