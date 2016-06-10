@@ -1,5 +1,0 @@
-Install Julia
-
-Install Julia's MPFI and Compose packages using Pkg.add() in Julia's interactive environment
-
-Install operating system's MPFI package (libmpfi-dev, libmpfr-dev, and libmpfi0 on my system)
