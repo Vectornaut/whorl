@@ -34,6 +34,7 @@ function prettyprint(m::Matrix, indent = 0)
     end
     println()
   end
+  println()
 end
 
 # given a matrix cocycle over an interval exchange, print the block translations
@@ -45,7 +46,6 @@ function printcocycle(a::Cocycle)
     @printf("Block %-5d", i)
     println("$bl\n")
     prettyprint(bl.f_transit, 4)
-    println()
   end
 end
 
@@ -181,7 +181,7 @@ expconj(t) =
     expm(t*a)*g*expm(-t*a)
   end
 
-function shear_plot_ex(; hires = false)
+function shear_plot_ex(; highres = false)
   perturbation = Matrix[
     traceless(1, 0, 0),
     traceless(0, 1, 0),
@@ -189,15 +189,25 @@ function shear_plot_ex(; hires = false)
     traceless(-1, 0, 0)
   ]
   
-  # small perturbation
-  transit_sm = map(expconj(0.01), zip(Regular.generators(2), perturbation))
-  data_sm = shear_data(transit_sm, hires ? 300 : 18)
-  p_sm = shear_plot(data_sm)
-  draw(PDF("small-perturbation.pdf", 30cm, 40cm), p_sm)
+  # no perturbation
+  println("=== no perturbation\n")
+  data_no = shear_data(Regular.generators(2), highres ? 300 : 18)
+  p_no = shear_plot(data_no)
+  draw(PDF("no-perturbation.pdf", 30cm, 40cm), p_no)
+  println()
   
   # small perturbation
+  println("=== small perturbation\n")
+  transit_sm = map(expconj(0.01), zip(Regular.generators(2), perturbation))
+  data_sm = shear_data(transit_sm, highres ? 300 : 18)
+  p_sm = shear_plot(data_sm)
+  draw(PDF("small-perturbation.pdf", 30cm, 40cm), p_sm)
+  println()
+  
+  # large perturbation
+  println("=== large perturbation\n")
   transit_lg = map(expconj(0.1), zip(Regular.generators(2), perturbation))
-  data_lg = shear_data(transit_lg, hires ? 300 : 18)
+  data_lg = shear_data(transit_lg, highres ? 300 : 18)
   p_lg = shear_plot(data_lg)
   draw(PDF("large-perturbation.pdf", 30cm, 40cm), p_lg)
 end
