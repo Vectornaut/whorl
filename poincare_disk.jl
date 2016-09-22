@@ -106,7 +106,7 @@ end
 
 # draw an arc of a horocycle at osc, starting at the geodesic osc -- a and
 # ending at the geodesic osc -- b, at distance _height_ from the edge of the
-# orthic triangle
+# contact triangle
 function horoarc(osc::Number, a::Number, b::Number, height::Number, eps::Number = 1e-2)
   # find the tail of the desired arc on the standard triangle ∞, 0, 1
   std_tail = 1im * exp(height)
