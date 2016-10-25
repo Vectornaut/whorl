@@ -23,7 +23,8 @@ function stable{T <: Number}(m::Matrix{T})
   # when you pass a matrix of type Hermitian to eigfact!, it calls LAPACK's
   # sygvd function, which puts the eigenvalues in ascending order. that means
   # the first eigenvector is the one that shrinks the most.
-  eigvecs(Hermitian(m' * m))[:,1]
+  ##eigvecs(Hermitian(m' * m))[:,1]
+  eig(Hermitian(m' * m))[2][:,1] # eigvecs for Hermitian matrices seems to be broken now...
 end
 
 # === points, geodesics, and horocycles
