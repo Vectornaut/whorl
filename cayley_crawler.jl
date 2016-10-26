@@ -26,6 +26,7 @@ type CayleyCrawler
   # the root tile of the spanning tree
   home
   
+  # a crawler for the group with Schläfli symbol {2j, 2k}
   CayleyCrawler(j, k, ascent) = CayleyCrawler(j, k, nothing, ROOT, nothing, ascent)
   
   function CayleyCrawler(j, k, up, mode, range, ascent)
