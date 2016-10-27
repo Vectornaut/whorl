@@ -1,3 +1,4 @@
+include("interval_exchange.jl")
 include("caterpillar.jl")
 include("rectangle.jl")
 include("regular.jl")
@@ -188,7 +189,8 @@ function shear_ex(cyc, transit, perturbation; highres = false)
   println("=== no perturbation\n")
   data_no = shear_data(cyc(transit), highres ? 300 : 18)
   p_no = shear_plot(data_no)
-  draw(PDF("no-perturbation.pdf", 30cm, 40cm), p_no)
+  page_height = length(transit)*3cm + 1cm
+  draw(PDF("no-perturbation.pdf", 30cm, page_height), p_no)
   println()
   
   # small perturbation
@@ -196,7 +198,7 @@ function shear_ex(cyc, transit, perturbation; highres = false)
   transit_sm = map(expconj(0.01), zip(transit, perturbation))
   data_sm = shear_data(cyc(transit_sm), highres ? 300 : 18)
   p_sm = shear_plot(data_sm)
-  draw(PDF("small-perturbation.pdf", 30cm, 40cm), p_sm)
+  draw(PDF("small-perturbation.pdf", 30cm, page_height), p_sm)
   println()
   
   # large perturbation
@@ -204,20 +206,20 @@ function shear_ex(cyc, transit, perturbation; highres = false)
   transit_lg = map(expconj(0.1), zip(transit, perturbation))
   data_lg = shear_data(cyc(transit_lg), highres ? 300 : 18)
   p_lg = shear_plot(data_lg)
-  draw(PDF("large-perturbation.pdf", 30cm, 40cm), p_lg)
+  draw(PDF("large-perturbation.pdf", 30cm, page_height), p_lg)
 end
 
 function square_shear_ex(k; highres = false)
   cyc = transit -> begin
-    loc = RectangleLocSys(
+    loc = RectangleLocSys{AbstractInterval}(
       @interval(1), @interval(1),
       inv(transit[2]), transit[1]
     )
     angle -> cocycle(angle, loc)
   end
   perturbation = Matrix[
-    traceless(0, 1, 0),
-    traceless(0, 0, 1)
+    traceless(10, 0, 0),
+    traceless(0, 10, 0)
   ]
   shear_ex(cyc, Regular.generators(2, k), perturbation, highres = highres)
 end

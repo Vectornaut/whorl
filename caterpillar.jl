@@ -1,4 +1,6 @@
-include("interval_exchange.jl")
+# this causes some kind of conflict when it's included twice, so you gotta do it
+# by hand
+##include("interval_exchange.jl")
 
 module Caterpillar
 

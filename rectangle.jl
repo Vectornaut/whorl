@@ -1,4 +1,6 @@
-include("interval_exchange.jl")
+# this causes some kind of conflict when it's included twice, so you gotta do it
+# by hand
+##include("interval_exchange.jl")
 
 module Rectangle
 
@@ -32,7 +34,6 @@ function cocycle{R <: AbstractInterval}(angle::R, loc::RectangleLocSys{R})
     measure = [-loc.height * cos(angle), loc.width * sin(angle)]
     f_transit = [loc.w_transit, loc.n_transit]
   end
-  show(measure)
   Cocycle(cumsum(measure), f_transit, [2, 1])
 end
 
