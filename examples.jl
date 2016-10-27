@@ -11,6 +11,7 @@ using
   Colors,
   ValidatedNumerics,
   IntervalExchange,
+  Rectangle,
   Caterpillar,
   PoincaréDisk,
   Crawl
@@ -181,19 +182,10 @@ expconj(t) =
     expm(t*a)*g*expm(-t*a)
   end
 
-function caterpillar_shear_ex(; highres = false)
-  perturbation = Matrix[
-    traceless(1, 0, 0),
-    traceless(0, 1, 0),
-    traceless(0, 0, 1),
-    traceless(-1, 0, 0)
-  ]
-  
+function shear_ex(cyc, transit, perturbation; highres = false)
   # no perturbation
   println("=== no perturbation\n")
-  transit_no = Regular.generators(2)
-  cyc_no = angle -> twisted_caterpillar(angle, transit_no)
-  data_no = shear_data(cyc_no, highres ? 300 : 18)
+  data_no = shear_data(cyc(transit), highres ? 300 : 18)
   p_no = shear_plot(data_no)
   draw(PDF("no-perturbation.pdf", 30cm, 40cm), p_no)
   println()
@@ -201,8 +193,7 @@ function caterpillar_shear_ex(; highres = false)
   # small perturbation
   println("=== small perturbation\n")
   transit_sm = map(expconj(0.01), zip(Regular.generators(2), perturbation))
-  cyc_sm = angle -> twisted_caterpillar(angle, transit_sm)
-  data_sm = shear_data(cyc_sm, highres ? 300 : 18)
+  data_sm = shear_data(cyc(transit_sm), highres ? 300 : 18)
   p_sm = shear_plot(data_sm)
   draw(PDF("small-perturbation.pdf", 30cm, 40cm), p_sm)
   println()
@@ -210,10 +201,35 @@ function caterpillar_shear_ex(; highres = false)
   # large perturbation
   println("=== large perturbation\n")
   transit_lg = map(expconj(0.1), zip(Regular.generators(2), perturbation))
-  cyc_lg = angle -> twisted_caterpillar(angle, transit_lg)
-  data_lg = shear_data(cyc_lg, highres ? 300 : 18)
+  data_lg = shear_data(cyc(transit_lg), highres ? 300 : 18)
   p_lg = shear_plot(data_lg)
   draw(PDF("large-perturbation.pdf", 30cm, 40cm), p_lg)
+end
+
+function square_shear_ex(k; highres = false)
+  cyc = transit -> begin
+    loc = RectangleLocSys(
+      @interval(1), @interval(1),
+      inv(transit[2]), transit[1]
+    )
+    angle -> cocycle(angle, loc)
+  end
+  perturbation = Matrix[
+    traceless(0, 1, 0),
+    traceless(0, 0, 1)
+  ]
+  shear_ex(cyc, Regular.generators(2, k), perturbation, highres = highres)
+end
+
+function caterpillar_shear_ex(; highres = false)
+  cyc = transit -> (angle -> twisted_caterpillar(angle, transit))
+  perturbation = Matrix[
+    traceless(1, 0, 0),
+    traceless(0, 1, 0),
+    traceless(0, 0, 1),
+    traceless(-1, 0, 0)
+  ]
+  shear_ex(cyc, Regular.generators(2), perturbation, highres = highres)
 end
 
 # === geodesic lamination movie
