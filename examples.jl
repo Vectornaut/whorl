@@ -1,4 +1,5 @@
 include("caterpillar.jl")
+include("rectangle.jl")
 include("regular.jl")
 include("cayley_crawler.jl")
 
@@ -53,7 +54,7 @@ end
 # print a "twisted caterpillar" cocycle and its abelianization
 function abelianization_ex()
   # set up cocycle
-  orig = twisted_caterpillar(@interval(3π/4 + 1//11), Regular.generators(2))
+  orig = twisted_caterpillar(@interval(3π/4 + 1//11), Regular.generators(4, 4))
   
   # evolve cocycle
   iter = orig
@@ -192,7 +193,7 @@ function shear_ex(cyc, transit, perturbation; highres = false)
   
   # small perturbation
   println("=== small perturbation\n")
-  transit_sm = map(expconj(0.01), zip(Regular.generators(2), perturbation))
+  transit_sm = map(expconj(0.01), zip(transit, perturbation))
   data_sm = shear_data(cyc(transit_sm), highres ? 300 : 18)
   p_sm = shear_plot(data_sm)
   draw(PDF("small-perturbation.pdf", 30cm, 40cm), p_sm)
@@ -200,7 +201,7 @@ function shear_ex(cyc, transit, perturbation; highres = false)
   
   # large perturbation
   println("=== large perturbation\n")
-  transit_lg = map(expconj(0.1), zip(Regular.generators(2), perturbation))
+  transit_lg = map(expconj(0.1), zip(transit, perturbation))
   data_lg = shear_data(cyc(transit_lg), highres ? 300 : 18)
   p_lg = shear_plot(data_lg)
   draw(PDF("large-perturbation.pdf", 30cm, 40cm), p_lg)
@@ -229,7 +230,7 @@ function caterpillar_shear_ex(; highres = false)
     traceless(0, 0, 1),
     traceless(-1, 0, 0)
   ]
-  shear_ex(cyc, Regular.generators(2), perturbation, highres = highres)
+  shear_ex(cyc, Regular.generators(4, 4), perturbation, highres = highres)
 end
 
 # === geodesic lamination movie
@@ -315,7 +316,7 @@ end
 
 function movie(; testframe = true)
   # enumerate symmetry group elements
-  transit = Regular.generators(2)
+  transit = Regular.generators(4, 4)
   dbl_transit = [transit; [inv(t) for t in transit]]
   crawler = CayleyCrawler(4, 4, 2)
   findhome!(crawler, dbl_transit)
