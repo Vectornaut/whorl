@@ -90,13 +90,13 @@ function grid(start, fin, res::Integer)
   map(u -> (1-u)*start + u*fin, [@interval(t//(res-1)) for t in 0:res-1])
 end
 
-# compute shear parameters of a "twisted caterpillar" cocycle, with the given
-# transition maps, over a range of angles, with the given resolution. the range
-# of angles goes roughly from π/2 to π. we use rational approximations for π/2
-# and π that are only accurate to about one part in 114, making it unlikely that
-# we'll get within machine precision of a saddle connection at any reasonable
-# resolution.
-function shear_data(transit, res::Integer)
+# compute shear parameters of a family of cocycles over a range of angles, with
+# the given resolution. the argument `cyc` should be a function that takes an
+# angle, of type AbstractInterval, and returns a cocycle. the range of angles
+# goes roughly from π/2 to π. we use rational approximations for π/2 and π that
+# are only accurate to about one part in 114, making it unlikely that we'll get
+# within machine precision of a saddle connection at any reasonable resolution.
+function shear_data(cyc, res::Integer)
   angles = grid(@interval(358//114), @interval(180//114), res)
   angle_col = []
   block_col = []
@@ -114,7 +114,7 @@ function shear_data(transit, res::Integer)
           break
         end
         
-        x = shears(twisted_caterpillar(angles[i], transit))
+        x = shears(cyc(angles[i]))
         append!(angle_col, collect(repeated(mid(angles[i]), length(x))))
         append!(block_col, collect(1:length(x)))
         append!(real_shear_col, map(real, x))
@@ -181,7 +181,7 @@ expconj(t) =
     expm(t*a)*g*expm(-t*a)
   end
 
-function shear_plot_ex(; highres = false)
+function caterpillar_shear_ex(; highres = false)
   perturbation = Matrix[
     traceless(1, 0, 0),
     traceless(0, 1, 0),
@@ -191,7 +191,9 @@ function shear_plot_ex(; highres = false)
   
   # no perturbation
   println("=== no perturbation\n")
-  data_no = shear_data(Regular.generators(2), highres ? 300 : 18)
+  transit_no = Regular.generators(2)
+  cyc_no = angle -> twisted_caterpillar(angle, transit_no)
+  data_no = shear_data(cyc_no, highres ? 300 : 18)
   p_no = shear_plot(data_no)
   draw(PDF("no-perturbation.pdf", 30cm, 40cm), p_no)
   println()
@@ -199,7 +201,8 @@ function shear_plot_ex(; highres = false)
   # small perturbation
   println("=== small perturbation\n")
   transit_sm = map(expconj(0.01), zip(Regular.generators(2), perturbation))
-  data_sm = shear_data(transit_sm, highres ? 300 : 18)
+  cyc_sm = angle -> twisted_caterpillar(angle, transit_sm)
+  data_sm = shear_data(cyc_sm, highres ? 300 : 18)
   p_sm = shear_plot(data_sm)
   draw(PDF("small-perturbation.pdf", 30cm, 40cm), p_sm)
   println()
@@ -207,7 +210,8 @@ function shear_plot_ex(; highres = false)
   # large perturbation
   println("=== large perturbation\n")
   transit_lg = map(expconj(0.1), zip(Regular.generators(2), perturbation))
-  data_lg = shear_data(transit_lg, highres ? 300 : 18)
+  cyc_lg = angle -> twisted_caterpillar(angle, transit_lg)
+  data_lg = shear_data(cyc_lg, highres ? 300 : 18)
   p_lg = shear_plot(data_lg)
   draw(PDF("large-perturbation.pdf", 30cm, 40cm), p_lg)
 end
