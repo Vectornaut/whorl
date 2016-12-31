@@ -320,7 +320,7 @@ function movie(; testframe = true)
   # enumerate symmetry group elements
   transit = Regular.generators(4, 4)
   dbl_transit = [transit; [inv(t) for t in transit]]
-  crawler = CayleyCrawler(4, 4, 2)
+  crawler = TileCrawler(4, 4, 2)
   findhome!(crawler, dbl_transit)
   
   if testframe
@@ -336,6 +336,22 @@ function movie(; testframe = true)
       @time(render(@interval((1-u)*start + u*fin), transit, crawler, orbiter, frame = t))
     end
   end
+end
+
+# === ideal triangulation of a punctured torus ===
+
+# takes a möbius transformation m and applies it to a fundamental domain for a
+# punctured torus
+##function torus_dom(m):
+
+function triangulation()
+  down, right = Regular.generators(2, nothing)
+  dbl_transit = [down, right, inv(down), inv(right)]
+  
+  crawler = FreeCrawler(2, 4)
+  node_cnt = mapcollect(m -> nothing, crawler)
+  println(length(node_cnt))
+  println(1 + 4 + 4*3 + 4*3^2 + 4*3^3)
 end
 
 end
