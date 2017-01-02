@@ -340,18 +340,57 @@ end
 
 # === ideal triangulation of a punctured torus ===
 
-# takes a möbius transformation m and applies it to a fundamental domain for a
-# punctured torus
-##function torus_dom(m):
+const strawberry_sunrise = [
+  RGB(70/255, 23/255, 7/255),
+  RGB(255/255, 118/255, 188/255),
+  RGB(255/255, 200/255, 122/255),
+  RGB(245/255, 234/255, 215/255)
+]
 
-function triangulation()
+# given a number n, return the function that takes a möbius transformation m and
+# applies it to the an ideal triangulation of a punctured torus, Dehn-twisted n
+# times in the `down` direction
+function lam_orbiter(n, down)
+  vertex = [cis((2j+1)*π/4) for j in 0:3]
+  for c in 1:n
+    vertex[2] = möbius_map(down, vertex[2])
+    vertex[3] = möbius_map(down, vertex[3])
+  end
+  for c in 1:n
+    vertex[1] = möbius_map(inv(down), vertex[1])
+    vertex[4] = möbius_map(inv(down), vertex[4])
+  end
+  m -> begin
+    w = [möbius_map(m, v) for v in vertex]
+    compose(
+      context(),
+      (context(), ideal_edges(w[1], w[2]), stroke(strawberry_sunrise[2])),
+      (context(), ideal_edges(w[1], w[3]), stroke(strawberry_sunrise[3])),
+      (context(), ideal_edges(w[1], w[4]), stroke(strawberry_sunrise[4]))
+    )
+  end
+end
+
+function triangulate()
   down, right = Regular.generators(2, nothing)
   dbl_transit = [down, right, inv(down), inv(right)]
+  crawler = FreeCrawler(2, 6)
+  findhome!(crawler, dbl_transit)
   
-  crawler = FreeCrawler(2, 4)
-  node_cnt = mapcollect(m -> nothing, crawler)
-  println(length(node_cnt))
-  println(1 + 4 + 4*3 + 4*3^2 + 4*3^3)
+  # draw background and boundary
+  bg = compose(context(), rectangle(), fill("white"), stroke(nothing))
+  disk = compose(context(), circle(), fill(strawberry_sunrise[1]), stroke(nothing))
+  bdry = compose(context(), circle(), stroke("white"), linewidth(0.4mm), fill(nothing))
+  
+  # draw lamination
+  lam_edges = mapcollect(lam_orbiter(1, down), crawler)
+  lam_cmp = compose(context(), lam_edges..., linewidth(0.2mm), fill(nothing))
+  
+  # render
+  lam_picture = compose(context(), (context(1/9, 1/9, 7/9, 7/9), bdry, lam_cmp, disk), bg)
+  ##fol_picture = compose(context(), (context(1/9, 1/9, 7/9, 7/9), bdry, lam_cmp, fol_cmp), bg)
+  draw(SVG("laminated.svg", 9cm, 9cm), lam_picture)
+  ##draw(SVG("foliated.svg", 9cm, 9cm), fol_picture)
 end
 
 end
