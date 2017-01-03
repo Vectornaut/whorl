@@ -341,53 +341,85 @@ end
 # === ideal triangulation of a punctured torus ===
 
 const strawberry_sunrise = [
-  RGB(70/255, 23/255, 7/255),
+  RGB(53/255, 16/255, 3/255),
   RGB(255/255, 118/255, 188/255),
   RGB(255/255, 200/255, 122/255),
   RGB(245/255, 234/255, 215/255)
 ]
 
+function torus_punks(h)
+  p = möbius_map([[im, -1] [-1, im]], exp(h/2))
+  return [p, -conj(p), -p, conj(p)]
+end
+
+# Yair Minsky, "The classification of punctured-torus groups"
+# Equation 2.1
+function torus_sym(h)
+  l_frame = [[1, 1] [-1, 1]]
+  h_frame = [[1im, 1] [-1im, 1]]
+  l = 2atanh(sech(h/2))
+  return Array[
+    l_frame * diagm([exp(-l/2), exp(l/2)]) * inv(l_frame),
+    h_frame * diagm([exp(-h/2), exp(h/2)]) * inv(h_frame)
+  ]
+end
+
 # given a number n, return the function that takes a möbius transformation m and
 # applies it to the an ideal triangulation of a punctured torus, Dehn-twisted n
 # times in the `down` direction
-function lam_orbiter(n, down)
-  vertex = [cis((2j+1)*π/4) for j in 0:3]
+function lam_orbiter(n, h, down)
+  up = inv(down)
+  
+  p = torus_punks(h)
+  x_start, x_end = p[1], p[2]
+  y_start, y_end = p[1], p[3]
+  z_start, z_end = p[1], p[4]
+  
+  is_x_turn = true
   for c in 1:n
-    vertex[2] = möbius_map(down, vertex[2])
-    vertex[3] = möbius_map(down, vertex[3])
+    if is_x_turn
+      x_start = möbius_map(up, x_start)
+      x_end = möbius_map(down, x_end)
+    else
+      y_start = möbius_map(up, y_start)
+      y_end = möbius_map(down, y_end)
+    end
+    is_x_turn = !is_x_turn
   end
-  for c in 1:n
-    vertex[1] = möbius_map(inv(down), vertex[1])
-    vertex[4] = möbius_map(inv(down), vertex[4])
-  end
+  
   m -> begin
-    w = [möbius_map(m, v) for v in vertex]
+    shift_x_start = möbius_map(m, x_start)
+    shift_x_end = möbius_map(m, x_end)
+    shift_y_start = möbius_map(m, y_start)
+    shift_y_end = möbius_map(m, y_end)
+    shift_z_start = möbius_map(m, z_start)
+    shift_z_end = möbius_map(m, z_end)
     compose(
       context(),
-      (context(), ideal_edges(w[1], w[2]), stroke(strawberry_sunrise[2])),
-      (context(), ideal_edges(w[1], w[3]), stroke(strawberry_sunrise[3])),
-      (context(), ideal_edges(w[1], w[4]), stroke(strawberry_sunrise[4]))
+      (context(), ideal_edges(shift_x_start, shift_x_end), stroke(strawberry_sunrise[2])),
+      (context(), ideal_edges(shift_y_start, shift_y_end), stroke(strawberry_sunrise[3])),
+      (context(), ideal_edges(shift_z_start, shift_z_end), stroke(strawberry_sunrise[4]))
     )
   end
 end
 
 function triangulate()
-  down, right = Regular.generators(2, nothing)
-  dbl_transit = [down, right, inv(down), inv(right)]
-  crawler = FreeCrawler(2, 6)
+  h = 2log1p(sqrt(2))
+  left, down = torus_sym(h)
+  dbl_transit = [left, down, inv(left), inv(down)]
+  crawler = FreeCrawler(2, 5)
   findhome!(crawler, dbl_transit)
   
   # draw background and boundary
-  bg = compose(context(), rectangle(), fill("white"), stroke(nothing))
   disk = compose(context(), circle(), fill(strawberry_sunrise[1]), stroke(nothing))
-  bdry = compose(context(), circle(), stroke("white"), linewidth(0.4mm), fill(nothing))
+  bdry = compose(context(), circle(), stroke("white"), linewidth(0.25mm), fill(nothing))
   
   # draw lamination
-  lam_edges = mapcollect(lam_orbiter(1, down), crawler)
-  lam_cmp = compose(context(), lam_edges..., linewidth(0.2mm), fill(nothing))
+  lam_edges = mapcollect(lam_orbiter(0, h, down), crawler)
+  lam_cmp = compose(context(), lam_edges..., linewidth(0.3mm), fill(nothing))
   
   # render
-  lam_picture = compose(context(), (context(1/9, 1/9, 7/9, 7/9), bdry, lam_cmp, disk), bg)
+  lam_picture = compose(context(), bdry, lam_cmp, disk)
   ##fol_picture = compose(context(), (context(1/9, 1/9, 7/9, 7/9), bdry, lam_cmp, fol_cmp), bg)
   draw(SVG("laminated.svg", 9cm, 9cm), lam_picture)
   ##draw(SVG("foliated.svg", 9cm, 9cm), fol_picture)
