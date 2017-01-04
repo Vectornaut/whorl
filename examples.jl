@@ -341,10 +341,17 @@ end
 # === ideal triangulation of a punctured torus ===
 
 const strawberry_sunrise = [
-  RGB(53/255, 16/255, 3/255),
   RGB(255/255, 118/255, 188/255),
   RGB(255/255, 200/255, 122/255),
   RGB(245/255, 234/255, 215/255)
+]
+
+const chocolate = [
+  RGB(53/255, 16/255, 3/255),
+  RGB(134/255, 0/255, 105/255),
+  RGB(180/255, 86/255, 0/255),
+  #RGB(118/255, 82/255, 62/255),
+  #RGB(161/255, 127/255, 103/255)
 ]
 
 function torus_punks(h)
@@ -367,13 +374,13 @@ end
 # given a number n, return the function that takes a möbius transformation m and
 # applies it to the an ideal triangulation of a punctured torus, Dehn-twisted n
 # times in the `down` direction
-function lam_orbiter(n, h, down)
+function lam_orbiter(n, h, down, fol)
   up = inv(down)
   
   p = torus_punks(h)
-  x_start, x_end = p[1], p[2]
-  y_start, y_end = p[1], p[3]
-  z_start, z_end = p[1], p[4]
+  x_start, x_end = p[4], p[3]
+  y_start, y_end = p[4], p[2]
+  z_start, z_end = p[4], p[1]
   
   is_x_turn = true
   for c in 1:n
@@ -387,19 +394,45 @@ function lam_orbiter(n, h, down)
     is_x_turn = !is_x_turn
   end
   
-  m -> begin
-    shift_x_start = möbius_map(m, x_start)
-    shift_x_end = möbius_map(m, x_end)
-    shift_y_start = möbius_map(m, y_start)
-    shift_y_end = möbius_map(m, y_end)
-    shift_z_start = möbius_map(m, z_start)
-    shift_z_end = möbius_map(m, z_end)
-    compose(
-      context(),
-      (context(), ideal_edges(shift_x_start, shift_x_end), stroke(strawberry_sunrise[2])),
-      (context(), ideal_edges(shift_y_start, shift_y_end), stroke(strawberry_sunrise[3])),
-      (context(), ideal_edges(shift_z_start, shift_z_end), stroke(strawberry_sunrise[4]))
-    )
+  # return requested orbiter
+  if fol
+    m -> begin
+      shift_x_start = möbius_map(m, x_start)
+      shift_x_end = möbius_map(m, x_end)
+      shift_y_start = möbius_map(m, y_start)
+      shift_y_end = möbius_map(m, y_end)
+      shift_z_start = möbius_map(m, z_start)
+      shift_z_end = möbius_map(m, z_end)
+      shift_opp_x_end = möbius_map(m, -x_end)
+      compose(
+        context(),
+        (
+          context(),
+          horotriangle(shift_x_end, shift_y_end, shift_y_start, 69, 1/21, 4e-3),
+          stroke(chocolate[2])
+        ),
+        (
+          context(),
+          horotriangle(shift_opp_x_end, shift_y_start, shift_y_end, 69, 1/21, 4e-3),
+          stroke(chocolate[3])
+        )
+      )
+    end
+  else
+    m -> begin
+      shift_x_start = möbius_map(m, x_start)
+      shift_x_end = möbius_map(m, x_end)
+      shift_y_start = möbius_map(m, y_start)
+      shift_y_end = möbius_map(m, y_end)
+      shift_z_start = möbius_map(m, z_start)
+      shift_z_end = möbius_map(m, z_end)
+      compose(
+        context(),
+        (context(), ideal_edges(shift_x_start, shift_x_end), stroke(strawberry_sunrise[1])),
+        (context(), ideal_edges(shift_y_start, shift_y_end), stroke(strawberry_sunrise[2])),
+        (context(), ideal_edges(shift_z_start, shift_z_end), stroke(strawberry_sunrise[3]))
+      )
+    end
   end
 end
 
@@ -411,15 +444,19 @@ function triangulate()
   findhome!(crawler, dbl_transit)
   
   # draw background and boundary
-  disk = compose(context(), circle(), fill(strawberry_sunrise[1]), stroke(nothing))
+  disk = compose(context(), circle(), fill(chocolate[1]), stroke(nothing))
   bdry = compose(context(), circle(), stroke("white"), linewidth(0.25mm), fill(nothing))
   
   # draw lamination
-  lam_edges = mapcollect(lam_orbiter(0, h, down), crawler)
-  lam_cmp = compose(context(), lam_edges..., linewidth(0.3mm), fill(nothing))
+  lam_edges = mapcollect(lam_orbiter(2, h, down, false), crawler)
+  lam_gp = compose(context(), lam_edges..., linewidth(0.3mm), fill(nothing))
+  
+  fol = mapcollect(lam_orbiter(2, h, down, true), crawler)
+  fol_gp = compose(context(), fol..., stroke("red"), linewidth(0.25mm))
+  #lam_cmp = compose(context(), horotriangle(1, 1im, -1im, 69, 1/21, 4e-3), stroke("white"))
   
   # render
-  lam_picture = compose(context(), bdry, lam_cmp, disk)
+  lam_picture = compose(context(), bdry, lam_gp, fol_gp, disk)
   ##fol_picture = compose(context(), (context(1/9, 1/9, 7/9, 7/9), bdry, lam_cmp, fol_cmp), bg)
   draw(SVG("laminated.svg", 9cm, 9cm), lam_picture)
   ##draw(SVG("foliated.svg", 9cm, 9cm), fol_picture)
