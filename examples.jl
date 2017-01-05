@@ -376,14 +376,16 @@ end
 # given a number n, return the function that takes a möbius transformation m and
 # applies it to the an ideal triangulation of a punctured torus, Dehn-twisted n
 # times in the `down` direction
-function lam_orbiter(n, h, down, fol)
+function flip_orbiter(n, h, down, fol)
   up = inv(down)
   
+  # write down the initial ends of the edges
   p = torus_punks(h)
   x_start, x_end = p[4], p[3]
   y_start, y_end = p[4], p[2]
   z_start, z_end = p[4], p[1]
   
+  # flip the edges
   is_x_turn = true
   for c in 1:n
     if is_x_turn
@@ -396,26 +398,36 @@ function lam_orbiter(n, h, down, fol)
     is_x_turn = !is_x_turn
   end
   
+  # record the vertices of the central lifts of the two triangles
+  if iseven(n)
+    q = [-x_end, y_end, x_end, y_start]
+  else
+    q = [-x_start, y_end, x_start, y_start]
+  end
+  
   # return requested orbiter
   if fol
     m -> begin
-      shift_x_start = möbius_map(m, x_start)
-      shift_x_end = möbius_map(m, x_end)
-      shift_y_start = möbius_map(m, y_start)
-      shift_y_end = möbius_map(m, y_end)
-      shift_z_start = möbius_map(m, z_start)
-      shift_z_end = möbius_map(m, z_end)
-      shift_opp_x_end = möbius_map(m, -x_end)
+      #shift_x_start = möbius_map(m, x_start)
+      #shift_x_end = möbius_map(m, x_end)
+      #shift_y_start = möbius_map(m, y_start)
+      #shift_y_end = möbius_map(m, y_end)
+      #shift_z_start = möbius_map(m, z_start)
+      #shift_z_end = möbius_map(m, z_end)
+      #shift_opp_x_end = möbius_map(m, -x_end)
+      shift_q = [möbius_map(m, u) for u in q]
       compose(
         context(),
         (
           context(),
-          horotriangle(shift_x_end, shift_y_end, shift_y_start, 69, 1/21, 4e-3),
+          horotriangle(shift_q[1], shift_q[4], shift_q[2], 69, 1/21, 4e-3),
+          #horotriangle(shift_opp_x_end, shift_y_start, shift_y_end, 69, 1/21, 4e-3),
           stroke(chocolate[2])
         ),
         (
           context(),
-          horotriangle(shift_opp_x_end, shift_y_start, shift_y_end, 69, 1/21, 4e-3),
+          horotriangle(shift_q[3], shift_q[2], shift_q[4], 69, 1/21, 4e-3),
+          #horotriangle(shift_x_end, shift_y_end, shift_y_start, 69, 1/21, 4e-3),
           stroke(chocolate[3])
         )
       )
@@ -438,28 +450,42 @@ function lam_orbiter(n, h, down, fol)
   end
 end
 
-function triangulate()
-  h = 2log1p(sqrt(2))
-  left, down = torus_sym(h)
-  dbl_transit = [left, down, inv(left), inv(down)]
-  crawler = FreeCrawler(2, 5)
-  findhome!(crawler, dbl_transit)
-  
+function render_flip(crawler::CayleyCrawler, lam_orbiter, fol_orbiter, frame = 0)
   # draw background and boundary
   disk = compose(context(), circle(), fill(chocolate[1]), stroke(nothing))
   bdry = compose(context(), circle(), stroke("white"), linewidth(0.25mm), fill(nothing))
   
   # draw lamination
-  lam_edges = mapcollect(lam_orbiter(6, h, down, false), crawler)
-  lam_gp = compose(context(), lam_edges..., linewidth(0.3mm), fill(nothing))
+  lam = mapcollect(lam_orbiter, crawler)
+  lam_gp = compose(context(), lam..., linewidth(0.3mm), fill(nothing))
   
   # draw foliation
-  fol = mapcollect(lam_orbiter(6, h, down, true), crawler)
+  fol = mapcollect(fol_orbiter, crawler)
   fol_gp = compose(context(), fol..., linewidth(0.25mm))
   
   # render
-  lam_picture = compose(context(), bdry, lam_gp, fol_gp, disk)
-  draw(PDF("laminated.pdf", 9cm, 9cm), lam_picture)
+  picture = compose(context(), bdry, (lam_gp, fol_gp), disk)
+  draw(PDF(@sprintf("flips/flip%i.pdf", frame), 9cm, 9cm), picture)
+end
+
+function animate_flips()
+  h = 2.0
+  
+  # set up holonomy group crawler
+  left, down = torus_sym(h)
+  dbl_transit = [left, down, inv(left), inv(down)]
+  crawler = FreeCrawler(2, 4)
+  findhome!(crawler, dbl_transit)
+  
+  # render flips
+  for n in 0:6
+    render_flip(
+      crawler,
+      flip_orbiter(n, h, down, false),
+      flip_orbiter(n, h, down, true),
+      n
+    )
+  end
 end
 
 end
