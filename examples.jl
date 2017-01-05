@@ -350,10 +350,10 @@ const chocolate = [
   RGB(53/255, 16/255, 3/255),
   #RGB(134/255, 0/255, 105/255),
   #RGB(180/255, 86/255, 0/255),
-  #RGB(118/255, 82/255, 62/255),
-  #RGB(161/255, 127/255, 103/255)
-  RGB(0/255, 47/255, 130/255),
-  RGB(0/255, 83/255, 155/255)
+  RGB(118/255, 82/255, 62/255),
+  RGB(161/255, 127/255, 103/255)
+  #RGB(0/255, 47/255, 130/255),
+  #RGB(0/255, 83/255, 155/255)
 ]
 
 function torus_punks(h)
@@ -450,18 +450,16 @@ function triangulate()
   bdry = compose(context(), circle(), stroke("white"), linewidth(0.25mm), fill(nothing))
   
   # draw lamination
-  lam_edges = mapcollect(lam_orbiter(2, h, down, false), crawler)
+  lam_edges = mapcollect(lam_orbiter(6, h, down, false), crawler)
   lam_gp = compose(context(), lam_edges..., linewidth(0.3mm), fill(nothing))
   
-  fol = mapcollect(lam_orbiter(2, h, down, true), crawler)
-  fol_gp = compose(context(), fol..., stroke("red"), linewidth(0.25mm))
-  #lam_cmp = compose(context(), horotriangle(1, 1im, -1im, 69, 1/21, 4e-3), stroke("white"))
+  # draw foliation
+  fol = mapcollect(lam_orbiter(6, h, down, true), crawler)
+  fol_gp = compose(context(), fol..., linewidth(0.25mm))
   
   # render
   lam_picture = compose(context(), bdry, lam_gp, fol_gp, disk)
-  ##fol_picture = compose(context(), (context(1/9, 1/9, 7/9, 7/9), bdry, lam_cmp, fol_cmp), bg)
-  draw(SVG("laminated.svg", 9cm, 9cm), lam_picture)
-  ##draw(SVG("foliated.svg", 9cm, 9cm), fol_picture)
+  draw(PDF("laminated.pdf", 9cm, 9cm), lam_picture)
 end
 
 end
