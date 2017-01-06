@@ -402,32 +402,23 @@ function flip_orbiter(n, h, down, fol)
   if iseven(n)
     q = [-x_end, y_end, x_end, y_start]
   else
-    q = [-x_start, y_end, x_start, y_start]
+    q = [x_start, y_start, -x_start, y_end]
   end
   
   # return requested orbiter
   if fol
     m -> begin
-      #shift_x_start = möbius_map(m, x_start)
-      #shift_x_end = möbius_map(m, x_end)
-      #shift_y_start = möbius_map(m, y_start)
-      #shift_y_end = möbius_map(m, y_end)
-      #shift_z_start = möbius_map(m, z_start)
-      #shift_z_end = möbius_map(m, z_end)
-      #shift_opp_x_end = möbius_map(m, -x_end)
       shift_q = [möbius_map(m, u) for u in q]
       compose(
         context(),
         (
           context(),
           horotriangle(shift_q[1], shift_q[4], shift_q[2], 69, 1/21, 4e-3),
-          #horotriangle(shift_opp_x_end, shift_y_start, shift_y_end, 69, 1/21, 4e-3),
           stroke(chocolate[2])
         ),
         (
           context(),
           horotriangle(shift_q[3], shift_q[2], shift_q[4], 69, 1/21, 4e-3),
-          #horotriangle(shift_x_end, shift_y_end, shift_y_start, 69, 1/21, 4e-3),
           stroke(chocolate[3])
         )
       )
@@ -465,7 +456,7 @@ function render_flip(crawler::CayleyCrawler, lam_orbiter, fol_orbiter, frame = 0
   
   # render
   picture = compose(context(), bdry, (lam_gp, fol_gp), disk)
-  draw(PDF(@sprintf("flips/flip%i.pdf", frame), 9cm, 9cm), picture)
+  draw(PDF(@sprintf("flips/flip%i.pdf", frame+1), 9cm, 9cm), picture)
 end
 
 function animate_flips()
@@ -474,7 +465,7 @@ function animate_flips()
   # set up holonomy group crawler
   left, down = torus_sym(h)
   dbl_transit = [left, down, inv(left), inv(down)]
-  crawler = FreeCrawler(2, 4)
+  crawler = FreeCrawler(2, 5)
   findhome!(crawler, dbl_transit)
   
   # render flips
