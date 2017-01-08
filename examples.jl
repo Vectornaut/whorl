@@ -373,10 +373,10 @@ function torus_sym(h)
   ]
 end
 
-# given a number n, return the function that takes a möbius transformation m and
-# applies it to the an ideal triangulation of a punctured torus, Dehn-twisted n
-# times in the `down` direction
-function flip_orbiter(n, h, down, fol)
+# given a number n, return some functions that each take a möbius transformation
+# m and apply it to part ideal triangulation of a punctured torus, Dehn-twisted
+# n times in the `down` direction
+function flip_orbiters(n, h, down)
   up = inv(down)
   
   # write down the initial ends of the edges
@@ -405,8 +405,27 @@ function flip_orbiter(n, h, down, fol)
     q = [x_start, y_start, -x_start, y_end]
   end
   
-  # return requested orbiter
-  if fol
+  # return
+  [
+    # x edge
+    m -> begin
+      shift_x_start = möbius_map(m, x_start)
+      shift_x_end = möbius_map(m, x_end)
+      compose(context(), ideal_edges(shift_x_start, shift_x_end))
+    end,
+    # y edge
+    m -> begin
+      shift_y_start = möbius_map(m, y_start)
+      shift_y_end = möbius_map(m, y_end)
+      compose(context(), ideal_edges(shift_y_start, shift_y_end))
+    end,
+    # z edge
+    m -> begin
+      shift_z_start = möbius_map(m, z_start)
+      shift_z_end = möbius_map(m, z_end)
+      compose(context(), ideal_edges(shift_z_start, shift_z_end))
+    end,
+    # dark triangle foliation
     m -> begin
       shift_q = [möbius_map(m, u) for u in q]
       compose(
@@ -422,59 +441,84 @@ function flip_orbiter(n, h, down, fol)
           stroke(chocolate[3])
         )
       )
+      # light triangle foliation
     end
-  else
-    m -> begin
-      shift_x_start = möbius_map(m, x_start)
-      shift_x_end = möbius_map(m, x_end)
-      shift_y_start = möbius_map(m, y_start)
-      shift_y_end = möbius_map(m, y_end)
-      shift_z_start = möbius_map(m, z_start)
-      shift_z_end = möbius_map(m, z_end)
-      compose(
-        context(),
-        (context(), ideal_edges(shift_x_start, shift_x_end), stroke(strawberry_sunrise[1])),
-        (context(), ideal_edges(shift_y_start, shift_y_end), stroke(strawberry_sunrise[2])),
-        (context(), ideal_edges(shift_z_start, shift_z_end), stroke(strawberry_sunrise[3]))
-      )
-    end
-  end
+  ]
 end
 
-function render_flip(crawler::CayleyCrawler, lam_orbiter, fol_orbiter, frame = 0)
+function render_flip(crawler::CayleyCrawler, orbiters, name, foliate = false)
   # draw background and boundary
   disk = compose(context(), circle(), fill(chocolate[1]), stroke(nothing))
   bdry = compose(context(), circle(), stroke("white"), linewidth(0.25mm), fill(nothing))
   
   # draw lamination
-  lam = mapcollect(lam_orbiter, crawler)
-  lam_gp = compose(context(), lam..., linewidth(0.3mm), fill(nothing))
+  lam_gps = []
+  for i in 1:3
+    lam_edges = mapcollect(orbiters[i], crawler)
+    push!(lam_gps, compose(
+      context(),
+      lam_edges...,
+      stroke(strawberry_sunrise[i]),
+      linewidth(0.3mm),
+      fill(nothing)
+    ))
+  end
   
   # draw foliation
-  fol = mapcollect(fol_orbiter, crawler)
-  fol_gp = compose(context(), fol..., linewidth(0.25mm))
+  if foliate
+    fol = mapcollect(orbiters[4], crawler)
+    fol_gp = compose(context(), fol..., linewidth(0.25mm))
+    picture = compose(context(), bdry, (lam_gps..., fol_gp), disk)
+  else
+    picture = compose(context(), bdry, (lam_gps...), disk)
+  end
   
   # render
-  picture = compose(context(), bdry, (lam_gp, fol_gp), disk)
-  draw(PDF(@sprintf("flips/flip%i.pdf", frame+1), 9cm, 9cm), picture)
+  draw(PDF(name, 9cm, 9cm), picture)
+end
+
+function various_shears()
+  crawler = FreeCrawler(2, 5)
+  h = linspace(2, 4, 5)
+  for i in 1:length(h)
+    # set up holonomy group crawler
+    left, down = torus_sym(h[i])
+    dbl_transit = [left, down, inv(left), inv(down)]
+    findhome!(crawler, dbl_transit)
+    
+    # render
+    if i == 1
+      render_flip(
+      crawler,
+      flip_orbiters(0, h[i], down),
+      "shears/disk1.pdf",
+      false
+    )
+    render_flip(
+      crawler,
+      flip_orbiters(0, h[i], down),
+      @sprintf("shears/shear%i.pdf", i),
+      true
+    )
+    end
+  end
 end
 
 function animate_flips()
   h = 2.0
   
   # set up holonomy group crawler
+  crawler = FreeCrawler(2, 5)
   left, down = torus_sym(h)
   dbl_transit = [left, down, inv(left), inv(down)]
-  crawler = FreeCrawler(2, 5)
   findhome!(crawler, dbl_transit)
   
   # render flips
-  for n in 0:6
+  for frame in 0:6
     render_flip(
       crawler,
-      flip_orbiter(n, h, down, false),
-      flip_orbiter(n, h, down, true),
-      n
+      flip_orbiters(frame, h, down),
+      @sprintf("flips/flip%i.pdf", frame+1)
     )
   end
 end
