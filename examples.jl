@@ -348,12 +348,8 @@ const strawberry_sunrise = [
 
 const chocolate = [
   RGB(53/255, 16/255, 3/255),
-  #RGB(134/255, 0/255, 105/255),
-  #RGB(180/255, 86/255, 0/255),
   RGB(118/255, 82/255, 62/255),
   RGB(161/255, 127/255, 103/255)
-  #RGB(0/255, 47/255, 130/255),
-  #RGB(0/255, 83/255, 155/255)
 ]
 
 function torus_punks(h)
@@ -425,23 +421,23 @@ function flip_orbiters(n, h, down)
       shift_z_end = möbius_map(m, z_end)
       compose(context(), ideal_edges(shift_z_start, shift_z_end))
     end,
-    # dark triangle foliation
     m -> begin
       shift_q = [möbius_map(m, u) for u in q]
       compose(
         context(),
+        # dark triangle foliation
         (
           context(),
           horotriangle(shift_q[1], shift_q[4], shift_q[2], 69, 1/21, 4e-3),
           stroke(chocolate[2])
         ),
+        # light triangle foliation
         (
           context(),
           horotriangle(shift_q[3], shift_q[2], shift_q[4], 69, 1/21, 4e-3),
           stroke(chocolate[3])
         )
       )
-      # light triangle foliation
     end
   ]
 end
