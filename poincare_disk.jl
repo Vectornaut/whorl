@@ -2,7 +2,7 @@ module PoincaréDisk
 
 using Compose
 
-export möbius_map, stable, planeproj, geodesic, ideal_edges, ideal_path, horotriangle, geodesic_orbit
+export möbius_map, pts_to_pts, stable, planeproj, geodesic, ideal_edges, ideal_path, horotriangle, geodesic_orbit
 
 # === möbius transformations
 
@@ -17,6 +17,19 @@ function möbius_deriv{T <: Number}(m::Matrix{T}, z)
   u = m[2,1]*z + m[2, 2]
   (m[1,1]*m[2,2] - m[1,2]*m[2,1]) / (u * u)
 end
+
+# get the möbius transformation
+#  0 --> a
+#  1 --> b
+#  ∞ --> c
+std_to_pts(a, b, c) = [[c*(b - a), b - a] [a*(c - b), c - b]]
+
+# get the möbius transformation
+#  a0 --> a1
+#  b0 --> b1
+#  c0 --> c1
+pts_to_pts(a0, b0, c0, a1, b1, c1) =
+  std_to_pts(a1, b1, c1) * inv(std_to_pts(a0, b0, c0))
 
 # find the stable line of an element of GL(2,C)
 function stable{T <: Number}(m::Matrix{T})
@@ -112,14 +125,12 @@ function horoarc(osc::Number, a::Number, b::Number, height::Number, eps::Number 
   # find the tail of the desired arc on the standard triangle ∞, 0, 1
   std_tail = 1im * exp(height)
   
-  # write down the möbius transformation
+  # apply the mobius transformation
   #  ∞ --> osc
   #  0 --> a
   #  1 --> b
-  m = [[osc*(b - a), b - a] [a*(osc - b), osc - b]]
-  
-  # apply the mobius transformation to get the desired arc on the triangle
-  # osc, a, b
+  # to get the desired arc on the triangle osc, a, b
+  m = std_to_pts(a, b, osc)
   tail = möbius_map(m, std_tail)
   head = möbius_map(m, std_tail + 1)
   if abs2(head - tail) > eps*eps

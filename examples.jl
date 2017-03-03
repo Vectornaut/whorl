@@ -255,11 +255,11 @@ end
 
 # given a jump j, return the function that takes a möbius transformation m and
 # applies it to the triangle associated with j
-orbiter(j::Jump) =
+orbiter(j::Jump, shift = eye(2)) =
   m -> begin
-    left = möbius_map(m, planeproj(j.left_stable))
-    right = möbius_map(m, planeproj(j.right_stable))
-    pivot = möbius_map(m, planeproj(j.pivot_stable))
+    left = möbius_map(shift*m, planeproj(j.left_stable))
+    right = möbius_map(shift*m, planeproj(j.right_stable))
+    pivot = möbius_map(shift*m, planeproj(j.pivot_stable))
     compose(
       context(),
       (context(),
@@ -278,7 +278,8 @@ function render{R <: AbstractInterval}(
   transit,
   crawler::CayleyCrawler,
   orbiter;
-  frame = nothing
+  frame = nothing,
+  center = nothing
 )
   # set up cocycle
   orig = twisted_caterpillar(angle, transit)
@@ -303,8 +304,22 @@ function render{R <: AbstractInterval}(
     (context(), rectangle(), fill("white"), stroke(nothing))
   )
   
+  # do centering, if requested
+  if center == nothing
+    shift = eye(2)
+  else
+    shift = pts_to_pts(
+      planeproj(widest[center].left_stable),
+      planeproj(widest[center].right_stable),
+      planeproj(widest[center].pivot_stable),
+      cis(11π/6),
+      cis(7π/6),
+      cis(3π/6)
+    )
+  end
+  
   # draw triangle lifts
-  triangles = vcat([mapcollect(orbiter(j), crawler) for j in widest]...)
+  triangles = vcat([mapcollect(orbiter(j, shift), crawler) for j in widest]...)
   lam_cmp = compose(context(), triangles...)
   
   # render
@@ -316,7 +331,7 @@ function render{R <: AbstractInterval}(
   end
 end
 
-function movie(; testframe = true)
+function movie(; testframe = true, center = nothing)
   # enumerate symmetry group elements
   transit = Regular.generators(4, 4)
   dbl_transit = [transit; [inv(t) for t in transit]]
@@ -325,7 +340,7 @@ function movie(; testframe = true)
   
   if testframe
     println("Test frame")
-    @time(render(@interval(3π/4 + 1//11), transit, crawler, orbiter))
+    @time(render(@interval(3π/4 + 1//11), transit, crawler, orbiter, center = center))
   else
     start = @interval(358//114)
     fin = @interval(180//114)
@@ -333,7 +348,7 @@ function movie(; testframe = true)
     for t in 0:n
       println("Frame $t")
       u = easing(@interval(t//n))
-      @time(render(@interval((1-u)*start + u*fin), transit, crawler, orbiter, frame = t))
+      @time(render(@interval((1-u)*start + u*fin), transit, crawler, orbiter, frame = t, center = center))
     end
   end
 end
