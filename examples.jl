@@ -284,40 +284,52 @@ end
 # given a jump j, return the function that takes a möbius transformation m and
 # applies it to the triangle associated with j, drawn in the given theme
 
-leaf_orbiter(j::Jump, theme::LaminationTheme, shift = eye(2)) =
+leaf_orbiter(j::Jump, eps, theme::LaminationTheme, shift = eye(2)) =
   m -> begin
     left = möbius_map(shift*m, planeproj(j.left_stable))
     right = möbius_map(shift*m, planeproj(j.right_stable))
     pivot = möbius_map(shift*m, planeproj(j.pivot_stable))
-    compose(
-      context(),
-      ideal_edges(pivot, right, left),
-      stroke(theme.leafcolor)
-    )
+    if eps == nothing || abs2(right - left) > eps*eps
+      return compose(
+        context(),
+        ideal_edges(pivot, right, left),
+        stroke(theme.leafcolor)
+      )
+    else
+      return compose(context())
+    end
   end
 
-function fill_orbiter(j::Jump, theme::LaminationTheme, shift = eye(2))
+function fill_orbiter(j::Jump, eps, theme::LaminationTheme, shift = eye(2))
   if theme.fillstyle == SOLID
     return m -> begin
       left = möbius_map(shift*m, planeproj(j.left_stable))
       right = möbius_map(shift*m, planeproj(j.right_stable))
       pivot = möbius_map(shift*m, planeproj(j.pivot_stable))
-      compose(
-        context(),
-        ideal_path(left, right, pivot),
-        fill(theme.fillcolor[j.sing])
-      )
+      if eps == nothing || abs2(right - left) > eps*eps
+        compose(
+          context(),
+          ideal_path(left, right, pivot),
+          fill(theme.fillcolor[j.sing])
+        )
+      else
+        return compose(context())
+      end
     end
   elseif theme.fillstyle == HORO
     return m -> begin
       left = möbius_map(shift*m, planeproj(j.left_stable))
       right = möbius_map(shift*m, planeproj(j.right_stable))
       pivot = möbius_map(shift*m, planeproj(j.pivot_stable))
-      compose(
-        context(),
-        horotriangle(pivot, right, left, 69, 1/21, 4e-3),
-        stroke(theme.fillcolor[j.sing])
-      )
+      if eps == nothing || abs2(right - left) > eps*eps
+        return compose(
+          context(),
+          horotriangle(pivot, right, left, 69, 1/21, 4e-3),
+          stroke(theme.fillcolor[j.sing])
+        )
+      else
+        return compose(context())
+      end
     end
   end
 end
@@ -332,9 +344,12 @@ function render{R <: AbstractInterval}(
   angle::R,
   transit,
   crawler::CayleyCrawler,
+  ascent,
+  eps,
   theme;
   frame = nothing,
-  center = nothing
+  center = nothing,
+  svg = false
 )
   # set up cocycle
   orig = twisted_caterpillar(angle, transit)
@@ -381,14 +396,14 @@ function render{R <: AbstractInterval}(
     clip = compose(context(), circle(), stroke("white"), linewidth(0.1mm), fill(nothing))
     push!(layers, clip)
     
-    leaves = vcat([mapcollect(leaf_orbiter(j, theme, shift), crawler) for j in widest]...)
+    leaves = vcat([mapcollect(leaf_orbiter(j, eps, theme, shift), crawler) for j in widest]...)
     leaf_gp = compose(context(), leaves..., linewidth(0.1mm), fill(nothing))
     push!(layers, leaf_gp)
   end
   
   # fill complementary triangles
   if theme.fillcolor != nothing
-    triangles = vcat([mapcollect(fill_orbiter(j, theme, shift), crawler) for j in widest]...)
+    triangles = vcat([mapcollect(fill_orbiter(j, eps, theme, shift), crawler) for j in widest]...)
     if theme.fillstyle == SOLID
       triangle_gp = compose(context(), triangles...)
     elseif theme.fillstyle == HORO
@@ -406,22 +421,26 @@ function render{R <: AbstractInterval}(
   # render
   picture = compose(context(), layers...)
   if frame == nothing
-    draw(PDF("triangle_test.pdf", 7cm, 7cm), picture)
+    if svg
+      draw(SVG("triangle_test.svg", 7cm, 7cm), picture)
+    else
+      draw(PDF("triangle_test.pdf", 7cm, 7cm), picture)
+    end
   else
     draw(PNG(@sprintf("triangle_mov/frame%02i.png", frame), 500px, 500px), picture)
   end
 end
 
-function movie(; theme = tacos, testframe = true, center = nothing)
+function movie(; ascent = 2, eps = 1e-3, theme = tacos, testframe = true, center = nothing, svg = false)
   # enumerate symmetry group elements
   transit = Regular.generators(4, 4)
   dbl_transit = [transit; [inv(t) for t in transit]]
-  crawler = TileCrawler(4, 4, 2)
+  crawler = TileCrawler(4, 4, ascent)
   findhome!(crawler, dbl_transit)
   
   if testframe
     println("Test frame")
-    @time(render(@interval(3π/4 + 1//11), transit, crawler, theme, center = center))
+    @time(render(@interval(3π/4 + 1//11), transit, crawler, ascent, eps, theme, center = center, svg = svg))
   else
     start = @interval(358//114)
     fin = @interval(180//114)
@@ -429,7 +448,7 @@ function movie(; theme = tacos, testframe = true, center = nothing)
     for t in 0:n
       println("Frame $t")
       u = easing(@interval(t//n))
-      @time(render(@interval((1-u)*start + u*fin), transit, crawler, theme, frame = t, center = center))
+      @time(render(@interval((1-u)*start + u*fin), transit, crawler, ascent, eps, theme, frame = t, center = center))
     end
   end
 end
