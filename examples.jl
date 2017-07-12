@@ -557,7 +557,7 @@ function flip_orbiters(n, h, down)
   ]
 end
 
-function render_flip(crawler::CayleyCrawler, orbiters, name, foliate = false)
+function render_flip(crawler::CayleyCrawler, orbiters, name, foliate = false, svg = false)
   # draw background and boundary
   disk = compose(context(), circle(), fill(chocolate[1]), stroke(nothing))
   bdry = compose(context(), circle(), stroke("white"), linewidth(0.25mm), fill(nothing))
@@ -585,7 +585,11 @@ function render_flip(crawler::CayleyCrawler, orbiters, name, foliate = false)
   end
   
   # render
-  draw(PDF(name, 9cm, 9cm), picture)
+  if svg
+    draw(SVG(name, 9cm, 9cm), picture)
+  else
+    draw(PDF(name, 9cm, 9cm), picture)
+  end
 end
 
 function various_shears()
