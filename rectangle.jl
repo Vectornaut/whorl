@@ -11,18 +11,18 @@ export RectangleLocSys, cocycle, appx_abelianize
 type RectangleLocSys{R <: AbstractInterval}
   width::R
   height::R
-  w_transit
   n_transit
   e_transit
   s_transit
+  w_transit
   
   RectangleLocSys(
     width, height,
-    w_transit, n_transit
+    n_transit, e_transit
   ) = new(
     width, height,
-    w_transit, n_transit,
-    inv(w_transit), inv(n_transit)
+    n_transit, e_transit,
+    inv(n_transit), inv(e_transit)
   )
 end
 
@@ -51,9 +51,9 @@ function abelianize{R <: AbstractInterval}(angle::R, loc::RectangleLocSys, depth
   ab = IntervalExchange.abelianize(orig, iter)
   ab_transit = [block.f_transit for block in ab.blocks_by_in]
   if (angle < @interval(pi)/2)
-    RectangleLocSys{AbstractInterval}(loc.width, loc.height, inv(ab_transit[2]), ab_transit[1])
-  else
     RectangleLocSys{AbstractInterval}(loc.width, loc.height, ab_transit[1], ab_transit[2])
+  else
+    RectangleLocSys{AbstractInterval}(loc.width, loc.height, ab_transit[2], inv(ab_transit[1]))
   end
 end
 
@@ -67,21 +67,21 @@ function appx_abelianize{R <: AbstractInterval}(tilt_sgn, loc::RectangleLocSys{R
     λ = n_eigvals[2]
     n_eigframe = [n_eigframe[:,2] n_eigframe[:,1]]
   end
-  w_reframed = inv(n_eigframe) * loc.w_transit * n_eigframe
+  e_reframed = inv(n_eigframe) * loc.e_transit * n_eigframe
   
-  # approximate the west transition map of the abelianized local system
+  # approximate the east transition map of the abelianized local system
   if tilt_sgn > 0
-    w_transit_ab = diagm([1/w_reframed[2,2], w_reframed[2,2]])
+    e_transit_ab = diagm([e_reframed[1,1], 1/e_reframed[1,1]])
   else
-    w_transit_ab = diagm([w_reframed[1,1], 1/w_reframed[1,1]])
+    e_transit_ab = diagm([1/e_reframed[2,2], e_reframed[2,2]])
   end
   
   # return
   RectangleLocSys{R}(
     loc.width,
     loc.height,
-    w_transit_ab,
-    diagm([λ, 1/λ])
+    diagm([λ, 1/λ]),
+    e_transit_ab
   )
 end
 
