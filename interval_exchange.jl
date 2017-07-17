@@ -4,7 +4,7 @@ module IntervalExchange
 
 using ValidatedNumerics, Compose, PoincaréDisk
 
-export Cocycle, missed_connection, scancollect, twostep, Jump, FJump, BJump, abelianize
+export Cocycle, missed_connection, scancollect, twostep, power_twostep, Jump, FJump, BJump, abelianize
 
 # === exchangers
 
@@ -303,6 +303,23 @@ function twostep{R <: AbstractInterval}(a::Cocycle{R})
   new_blocks_by_in = sort(new_blocks, lt = in_isless)
   new_blocks_by_out = sort(new_blocks, lt = out_isless)
   Cocycle(new_blocks_by_in, new_blocks_by_out)
+end
+
+function power_twostep(a::Cocycle, depth::Integer; verbose = false)
+  iter = a
+  
+  for i in 1:depth
+    if verbose
+      print("  Step $i\n  ")
+      iter = @time(twostep(iter))
+      println("    $(length(iter.blocks_by_in)) blocks")
+    else
+      iter = twostep(iter)
+    end
+  end
+  
+  # return
+  iter
 end
 
 # === abelianization

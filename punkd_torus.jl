@@ -1,6 +1,6 @@
 include("interval_exchange.jl")
 include("caterpillar.jl")
-include("rectangle.jl")
+include("square.jl")
 include("regular.jl")
 include("cayley_crawler.jl")
 include("examples.jl")
@@ -10,13 +10,48 @@ module PunkdTorus
 using
   ValidatedNumerics,
   IntervalExchange,
-  Rectangle,
+  Square,
   Crawl,
   PoincaréDisk,
   Compose,
   Examples
 
-export punkd_torus_loc_sys
+export PunkdTorusLocSys
+
+type PunkdTorusLocSys <: SquareLocSys
+  n_transit
+  e_transit
+  s_transit
+  w_transit
+  
+  function PunkdTorusLocSys(length, twist)
+    # the mobius transformation
+    # -i --> -1
+    #  1 -->  0
+    #  i -->  1
+    flatten = [[-im, 1] [im, 1]]
+    
+    # see Parker and Parkkonen's "Coordinates for Quasi-Fuchsian Punctured Torus
+    # Space", Figure 1.2. our `arcleft` is the inverse of their S', and our
+    # `expand` is their T.
+    arcleft = [
+      -cosh(length)        cosh(length) - 1;
+       cosh(length) + 1   -cosh(length)
+    ]
+    expand = [
+       cosh(twist/2)*coth(length/2)   -sinh(twist/2);
+      -sinh(twist/2)                   cosh(twist/2)*tanh(length/2)
+    ]
+    
+    # return
+    new(
+      inv(flatten) * arcleft * flatten,
+      inv(flatten) * expand * flatten,
+      inv(flatten) * inv(arcleft) * flatten,
+      inv(flatten) * inv(expand) * flatten
+    )
+  end
+end
 
 function punkd_torus_loc_sys(length, twist)
   # the mobius transformation
