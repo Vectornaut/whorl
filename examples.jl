@@ -1,8 +1,8 @@
-include("interval_exchange.jl")
-include("caterpillar.jl")
-include("rectangle.jl")
-include("regular.jl")
-include("cayley_crawler.jl")
+##include("interval_exchange.jl")
+##include("caterpillar.jl")
+##include("rectangle.jl")
+##include("regular.jl")
+##include("cayley_crawler.jl")
 
 module Examples
 
@@ -344,7 +344,7 @@ function render{R <: AbstractInterval}(
   angle::R,
   transit,
   crawler::CayleyCrawler,
-  ascent,
+  ascent, ## not used?
   eps,
   theme;
   frame = nothing,

@@ -26,13 +26,15 @@ type RectangleLocSys{R <: AbstractInterval}
   )
 end
 
-function cocycle{R <: AbstractInterval}(angle::R, loc::RectangleLocSys{R})
+## Julia, i don't have time for your incomprehensible type system any more
+#function cocycle{R <: AbstractInterval}(angle::R, loc::RectangleLocSys)
+function cocycle(angle, loc)
   if (angle < @interval(pi)/2)
     measure = [loc.width * sin(angle), loc.height * cos(angle)]
-    f_transit = [loc.n_transit, loc.e_transit]
+    f_transit = [loc.e_transit * loc.n_transit, loc.e_transit]
   else
-    measure = [-loc.height * cos(angle), loc.width * sin(angle)]
-    f_transit = [loc.w_transit, loc.n_transit]
+    ##measure = [-loc.height * cos(angle), loc.width * sin(angle)]
+    ##f_transit = [loc.w_transit, loc.n_transit]
   end
   Cocycle(cumsum(measure), f_transit, [2, 1])
 end
