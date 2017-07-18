@@ -1,3 +1,10 @@
+include("interval_exchange.jl")
+include("caterpillar.jl")
+include("square.jl")
+include("regular.jl")
+include("cayley_crawler.jl")
+include("punkd_torus.jl")
+
 module Lamination
 
 using
@@ -7,6 +14,7 @@ using
   Crawl,
   ValidatedNumerics,
   IntervalExchange,
+  Caterpillar,
   Square,
   PunkdTorus
 
@@ -88,26 +96,26 @@ triangulate(j::Jump) =
     [planeproj(v) for v in [j.pivot_stable, j.right_stable, j.left_stable]]
   )
 
-#function triangulate{R <: AbstractInterval}(angle::R, transit, depth::Integer)
-#  # set up cocycle
-#  orig = twisted_caterpillar(angle, transit)
-#  iter = power_twostep(orig, depth)
-#  
-#  # find the widest triangle for each singularity
-#  b_jumps = scancollect(iter, Jump, b_fn = BJump)
-#  widest = Jump[]
-#  for sing in 1:4
-#    push!(widest, maximum(filter(j -> j.sing == sing, b_jumps)))
-#  end
-#  
-#  # return
-#  [triangulate(j) for j in widest]
-#end
-
-function triangulate{R <: AbstractInterval}(angle::R, loc::PunkdTorusLocSys, depth::Integer)
+function triangulate{R <: AbstractInterval}(angle::R, loc::CaterpillarLocSys, depth::Integer; verbose = false)
   # set up cocycle
-  orig = cocycle(angle, loc)
-  iter = power_twostep(orig, depth)
+  orig = Caterpillar.cocycle(angle, loc)
+  iter = power_twostep(orig, depth, verbose = verbose)
+  
+  # find the widest triangle for each singularity
+  b_jumps = scancollect(iter, Jump, b_fn = BJump)
+  widest = Jump[]
+  for sing in 1:4
+    push!(widest, maximum(filter(j -> j.sing == sing, b_jumps)))
+  end
+  
+  # return
+  [triangulate(j) for j in widest]
+end
+
+function triangulate{R <: AbstractInterval}(angle::R, loc::PunkdTorusLocSys, depth::Integer; verbose = false)
+  # set up cocycle
+  orig = PunkdTorus.cocycle(angle, loc)
+  iter = power_twostep(orig, depth, verbose = verbose)
   
   # find the triangle to the right of the critical leaf rising out of the
   # northwest puncture
@@ -152,17 +160,18 @@ function render{R <: AbstractInterval}(
   theme;
   frame = nothing,
   center = nothing,
-  svg = false
+  svg = false,
+  verbose = false
 )
   # get complementary triangles
-  triangles = triangulate(angle, loc, 4)
+  triangles = triangulate(angle, loc, 4, verbose = verbose)
   
   # do centering, if requested
   if center == nothing
     shift = eye(2)
   else
     shift = pts_to_pts(
-      triangles[center].vertices...,
+      triangles[center].verts...,
       cis(3π/6), cis(7π/6), cis(11π/6)
     )
   end

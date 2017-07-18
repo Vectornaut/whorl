@@ -18,7 +18,7 @@ type GenSquareLocSys <: SquareLocSys
   )
 end
 
-function cocycle(angle, loc::SquareLocSys)
+function cocycle{R <: AbstractInterval}(angle::R, loc::SquareLocSys)
   if (angle < @interval(pi)/2)
     off_perp = angle - @interval(pi)/4
     f_transit = [loc.n_transit, loc.e_transit]

@@ -1,10 +1,3 @@
-include("interval_exchange.jl")
-include("caterpillar.jl")
-include("square.jl")
-include("regular.jl")
-include("cayley_crawler.jl")
-include("examples.jl")
-
 module PunkdTorus
 
 using
@@ -13,8 +6,8 @@ using
   Square,
   Crawl,
   PoincaréDisk,
-  Compose,
-  Examples
+  Compose
+  ##Examples
 
 export PunkdTorusLocSys
 

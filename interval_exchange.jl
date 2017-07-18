@@ -307,7 +307,6 @@ end
 
 function power_twostep(a::Cocycle, depth::Integer; verbose = false)
   iter = a
-  
   for i in 1:depth
     if verbose
       print("  Step $i\n  ")
@@ -317,8 +316,6 @@ function power_twostep(a::Cocycle, depth::Integer; verbose = false)
       iter = twostep(iter)
     end
   end
-  
-  # return
   iter
 end
 
