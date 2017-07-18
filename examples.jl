@@ -55,27 +55,19 @@ end
 
 # print an "almost flat caterpillar" cocycle and its abelianization
 function abelianization_ex()
-  # set up local system
-  loc = almost_flat_caterpillar(Regular.generators(4, 4))
-  
   # build and evolve cocycle
-  angle = @interval(3π/4 + 1//11)
-  orig = Caterpillar.cocycle(angle, loc)
+  loc = almost_flat_caterpillar(Regular.generators(4, 4))
+  orig = Caterpillar.cocycle(@interval(3π/4 + 1//11), loc)
   iter = power_twostep(orig, 4)
   
-  # abelianize directly with IntervalExchange.abelianize
-  ab_cyc = IntervalExchange.abelianize(orig, iter)
-  
-  # abelianize indirectly with Caterpillar.abelianize
-  ab_loc = Caterpillar.abelianize(angle, loc, 4)
+  # abelianize
+  ab = IntervalExchange.abelianize(orig, iter)
   
   # output
   println("=== original cocyle\n")
   printcocycle(orig)
-  println("=== abelianized cocyle (direct)\n")
-  printcocycle(ab_cyc)
-  println("=== abelianized cocycle (indirect)\n")
-  printcocycle(Caterpillar.cocycle(angle, ab_loc))
+  println("=== abelianized cocyle\n")
+  printcocycle(ab)
 end
 
 # === shear parameter plots
