@@ -9,14 +9,15 @@ module Examples
 using
   Gadfly,
   DataFrames,
-  Compose,
   Colors,
+  Compose,
+  PoincaréDisk,
+  Crawl,
   ValidatedNumerics,
   IntervalExchange,
-  Rectangle,
+  Square,
   Caterpillar,
-  PoincaréDisk,
-  Crawl
+  Lamination
 
 import Regular
 
@@ -52,25 +53,29 @@ function printcocycle(a::Cocycle)
   end
 end
 
-# print a "twisted caterpillar" cocycle and its abelianization
+# print an "almost flat caterpillar" cocycle and its abelianization
 function abelianization_ex()
-  # set up cocycle
-  orig = twisted_caterpillar(@interval(3π/4 + 1//11), Regular.generators(4, 4))
+  # set up local system
+  loc = almost_flat_caterpillar(Regular.generators(4, 4))
   
-  # evolve cocycle
-  iter = orig
-  for _ in 1:4
-    iter = twostep(iter)
-  end
+  # build and evolve cocycle
+  angle = @interval(3π/4 + 1//11)
+  orig = Caterpillar.cocycle(angle, loc)
+  iter = power_twostep(orig, 4)
   
-  # abelianize cocycle
-  ab = abelianize(orig, iter)
+  # abelianize directly with IntervalExchange.abelianize
+  ab_cyc = IntervalExchange.abelianize(orig, iter)
+  
+  # abelianize indirectly with Caterpillar.abelianize
+  ab_loc = Caterpillar.abelianize(angle, loc, 4)
   
   # output
   println("=== original cocyle\n")
   printcocycle(orig)
-  println("=== abelianized cocyle\n")
-  printcocycle(ab)
+  println("=== abelianized cocyle (direct)\n")
+  printcocycle(ab_cyc)
+  println("=== abelianized cocycle (indirect)\n")
+  printcocycle(Caterpillar.cocycle(angle, ab_loc))
 end
 
 # === shear parameter plots
@@ -211,11 +216,8 @@ end
 
 function square_shear_ex(k; highres = false)
   cyc = transit -> begin
-    loc = RectangleLocSys{AbstractInterval}(
-      @interval(1), @interval(1),
-      inv(transit[2]), transit[1]
-    )
-    angle -> cocycle(angle, loc)
+    loc = SquareLocSys{AbstractInterval}(transit...)
+    angle -> Square.cocycle(angle, loc)
   end
   perturbation = Matrix[
     traceless(10, 0, 0),
@@ -225,7 +227,10 @@ function square_shear_ex(k; highres = false)
 end
 
 function caterpillar_shear_ex(; highres = false)
-  cyc = transit -> (angle -> twisted_caterpillar(angle, transit))
+  cyc = transit -> begin
+    loc = almost_flat_caterpillar(transit)
+    angle -> Caterpillar.cocycle(angle, loc)
+  end
   perturbation = Matrix[
     traceless(1, 0, 0),
     traceless(0, 1, 0),
@@ -237,40 +242,6 @@ end
 
 # === geodesic lamination movie
 
-# --- color schemes
-
-# fill types
-const SOLID = 0
-const HORO = 1
-
-type LaminationTheme
-  leafcolor # the color of the leaves
-  fillcolor # the colors of the complementary triangles
-  fillstyle # solid or horocyclic
-  diskcolor   # the color of the background disk
-end
-
-const tacos = LaminationTheme(
-  nothing, # leafcolor
-  [
-    RGB(255/255, 1/255, 73/255),
-    RGB(255/255, 121/255, 1/255),
-    RGB(255/255, 210/255, 0/255),
-    RGB(0/255, 200/255, 146/255)
-  ],       # fillcolor
-  SOLID,   # fillstyle
-  nothing  # diskcolor
-)
-
-const bone = LaminationTheme(
-  RGB(172/255, 146/255, 122/255),       # leafcolor
-  fill(RGB(99/255, 96/255, 83/255), 4), # fillcolor
-  HORO,                                 # fillstyle
-  RGB(39/255, 36/255, 33/255)           # diskcolor
-)
-
-# ---
-
 # the first two terms of a sawtooth wave, modified to zero out the jerk at the
 # the inflection point and rescaled into the box [0,1] × [0,1]
 function easing(t)
@@ -279,168 +250,22 @@ function easing(t)
   (1 + (x / (1+1/26))) / 2
 end
 
-# --- orbiters
-
-# given a jump j, return the function that takes a möbius transformation m and
-# applies it to the triangle associated with j, drawn in the given theme
-
-leaf_orbiter(j::Jump, eps, theme::LaminationTheme, shift = eye(2)) =
-  m -> begin
-    left = möbius_map(shift*m, planeproj(j.left_stable))
-    right = möbius_map(shift*m, planeproj(j.right_stable))
-    pivot = möbius_map(shift*m, planeproj(j.pivot_stable))
-    if eps == nothing || abs2(right - left) > eps*eps
-      return compose(
-        context(),
-        ideal_edges(pivot, right, left),
-        stroke(theme.leafcolor)
-      )
-    else
-      return compose(context())
-    end
-  end
-
-function fill_orbiter(j::Jump, eps, theme::LaminationTheme, shift = eye(2))
-  if theme.fillstyle == SOLID
-    return m -> begin
-      left = möbius_map(shift*m, planeproj(j.left_stable))
-      right = möbius_map(shift*m, planeproj(j.right_stable))
-      pivot = möbius_map(shift*m, planeproj(j.pivot_stable))
-      if eps == nothing || abs2(right - left) > eps*eps
-        compose(
-          context(),
-          ideal_path(left, right, pivot),
-          fill(theme.fillcolor[j.sing])
-        )
-      else
-        return compose(context())
-      end
-    end
-  elseif theme.fillstyle == HORO
-    return m -> begin
-      left = möbius_map(shift*m, planeproj(j.left_stable))
-      right = möbius_map(shift*m, planeproj(j.right_stable))
-      pivot = möbius_map(shift*m, planeproj(j.pivot_stable))
-      if eps == nothing || abs2(right - left) > eps*eps
-        return compose(
-          context(),
-          horotriangle(pivot, right, left, 69, 1/21, 4e-3),
-          stroke(theme.fillcolor[j.sing])
-        )
-      else
-        return compose(context())
-      end
-    end
-  end
-end
-
-# ---
-
-# draw the complementary triangles of the geodesic lamination specified by the
-# "twisted caterpillar" cocycle with the given angle and transition maps. if a
-# frame number is specified, render an appropriately named bitmap to be used as
-# a frame of a movie. otherwise, render a PDF test frame
-function render{R <: AbstractInterval}(
-  angle::R,
-  transit,
-  crawler::CayleyCrawler,
-  ascent, ## not used?
-  eps,
-  theme;
-  frame = nothing,
-  center = nothing,
-  svg = false
-)
-  # set up cocycle
-  orig = twisted_caterpillar(angle, transit)
-  
-  # evolve cocycle
-  iter = orig
-  for i in 1:4
-    print("  Step $i\n  ")
-    iter = @time(twostep(iter))
-    println("    $(length(iter.blocks_by_in)) blocks")
-  end
-  
-  # find the widest triangle for each singularity
-  b_jumps = scancollect(iter, Jump, b_fn = BJump)
-  widest = Jump[]
-  for sing in 1:4
-    push!(widest, maximum(filter(j -> j.sing == sing, b_jumps)))
-  end
-  
-  # draw background
-  ##bg = compose(context(),
-  ##  (context(), rectangle(), fill("white"), stroke(nothing))
-  ##)
-  
-  # do centering, if requested
-  if center == nothing
-    shift = eye(2)
-  else
-    shift = pts_to_pts(
-      planeproj(widest[center].left_stable),
-      planeproj(widest[center].right_stable),
-      planeproj(widest[center].pivot_stable),
-      cis(11π/6),
-      cis(7π/6),
-      cis(3π/6)
-    )
-  end
-  
-  # start a list of layers
-  layers = []
-  
-  # draw leaves
-  if theme.leafcolor != nothing
-    clip = compose(context(), circle(), stroke("white"), linewidth(0.1mm), fill(nothing))
-    push!(layers, clip)
-    
-    leaves = vcat([mapcollect(leaf_orbiter(j, eps, theme, shift), crawler) for j in widest]...)
-    leaf_gp = compose(context(), leaves..., linewidth(0.1mm), fill(nothing))
-    push!(layers, leaf_gp)
-  end
-  
-  # fill complementary triangles
-  if theme.fillcolor != nothing
-    triangles = vcat([mapcollect(fill_orbiter(j, eps, theme, shift), crawler) for j in widest]...)
-    if theme.fillstyle == SOLID
-      triangle_gp = compose(context(), triangles...)
-    elseif theme.fillstyle == HORO
-      triangle_gp = compose(context(), triangles..., linewidth(0.1mm), fill(nothing))
-    end
-    push!(layers, triangle_gp)
-  end
-  
-  # draw background
-  if theme.diskcolor != nothing
-    disk = compose(context(), circle(), fill(theme.diskcolor), stroke(nothing))
-    push!(layers, disk)
-  end
-  
-  # render
-  picture = compose(context(), layers...)
-  if frame == nothing
-    if svg
-      draw(SVG("triangle_test.svg", 7cm, 7cm), picture)
-    else
-      draw(PDF("triangle_test.pdf", 7cm, 7cm), picture)
-    end
-  else
-    draw(PNG(@sprintf("triangle_mov/frame%02i.png", frame), 500px, 500px), picture)
-  end
-end
-
-function movie(; ascent = 2, eps = 1e-3, theme = tacos, testframe = true, center = nothing, svg = false)
+function movie(; ascent = 2, eps = 1e-3, theme = tacos, testframe = true, center = nothing, svg = false, verbose = true)
   # enumerate symmetry group elements
   transit = Regular.generators(4, 4)
   dbl_transit = [transit; [inv(t) for t in transit]]
+  
+  # set up local system
+  loc = almost_flat_caterpillar(transit);
+  
+  # set up crawler
   crawler = TileCrawler(4, 4, ascent)
   findhome!(crawler, dbl_transit)
   
+  # render frames
   if testframe
     println("Test frame")
-    @time(render(@interval(3π/4 + 1//11), transit, crawler, ascent, eps, theme, center = center, svg = svg))
+    @time(Lamination.render(@interval(3π/4 + 1//11), loc, crawler, eps, theme, center = center, svg = svg, verbose = verbose))
   else
     start = @interval(358//114)
     fin = @interval(180//114)
@@ -448,7 +273,7 @@ function movie(; ascent = 2, eps = 1e-3, theme = tacos, testframe = true, center
     for t in 0:n
       println("Frame $t")
       u = easing(@interval(t//n))
-      @time(render(@interval((1-u)*start + u*fin), transit, crawler, ascent, eps, theme, frame = t, center = center))
+      @time(Lamination.render(@interval((1-u)*start + u*fin), loc, crawler, eps, theme, frame = t, center = center, verbose = verbose))
     end
   end
 end

@@ -36,14 +36,9 @@ function cocycle{R <: AbstractInterval}(angle::R, loc::SquareLocSys)
 end
 
 function abelianize{R <: AbstractInterval}(angle::R, loc::SquareLocSys, depth::Integer)
-  # build cocycle
+  # build and evolve cocycle
   orig = cocycle(angle, loc)
-  
-  # evolve cocycle
-  iter = orig
-  for _ in 1:depth
-    iter = twostep(iter)
-  end
+  iter = power_twostep(orig, depth)
   
   # abelianize
   ab = IntervalExchange.abelianize(orig, iter)

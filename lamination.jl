@@ -7,6 +7,8 @@ include("punkd_torus.jl")
 
 module Lamination
 
+export SOLID, HORO, LaminationTheme, tacos, bone, render
+
 using
   Colors,
   Compose,
@@ -90,14 +92,21 @@ function endblock(orig_out, a::Cocycle)
   a.blocks_by_out[index]
 end
 
+# find the triangle formed by the forward- and backward-stable lines at a jump
+# in a cocycle
 triangulate(j::Jump) =
   IdealTriangle(
     j.sing,
     [planeproj(v) for v in [j.pivot_stable, j.right_stable, j.left_stable]]
   )
 
+# foliate the translation surface carrying `loc` at the given angle, pull the
+# leaves tight with respect to the hyperbolic structure described by `loc`, and
+# return the complementary triangles of the resulting geodesic lamination. we
+# approximate the lamination by doubling the first return cocycle `depth` times.
+
 function triangulate{R <: AbstractInterval}(angle::R, loc::CaterpillarLocSys, depth::Integer; verbose = false)
-  # set up cocycle
+  # build and evolve cocycle
   orig = Caterpillar.cocycle(angle, loc)
   iter = power_twostep(orig, depth, verbose = verbose)
   
@@ -152,6 +161,13 @@ orbiter(t::IdealTriangle, eps, draw, shift = eye(2)) =
 
 # === rendering
 
+# foliate the translation surface carrying `loc` at the given angle, pull the
+# leaves tight with respect to the hyperbolic structure described by `loc`, and
+# draw the resulting geodesic lamination. we approximate the lamination by
+# finding its complementary triangles and tiling them using the given crawler
+# for the holonomy group. if a frame number is specified, render an
+# appropriately named bitmap to be used as a frame of a movie. otherwise, render
+# a PDF or SVG test frame.
 function render{R <: AbstractInterval}(
   angle::R,
   loc,

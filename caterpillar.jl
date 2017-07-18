@@ -2,30 +2,12 @@ module Caterpillar
 
 using ValidatedNumerics, IntervalExchange
 
-export CaterpillarLocSys, cocycle, almost_flat_caterpillar
+export CaterpillarLocSys, cocycle, abelianize, symmetric_caterpillar, almost_flat_caterpillar
 
 tilt(x::Integer, y::Integer) = ((10*x + 7*y)//149, (-7*x + 10*y)//149)
 
 type CaterpillarLocSys
   f_transit
-  
-  CaterpillarLocSys(m4, m5, m7, m8, m9, a, b) = new(
-    Array[
-      b*inv(m9)*a,
-      b*inv(m8)*a,
-      b*inv(m7)*a,
-      m9,
-      m8,
-      m7,
-      inv(a)*b,
-      m5,
-      m4,
-      inv(a)*inv(b),
-      inv(a)*inv(m5)*inv(b),
-      inv(a)*inv(m4)*inv(b),
-      a*inv(b)
-    ]
-  )
 end
 
 function proj{R <: AbstractInterval, T <: Integer}(angle::R, pt::Tuple{T, T})
@@ -51,6 +33,35 @@ function cocycle{R <: AbstractInterval}(angle::R, loc::CaterpillarLocSys)
   Cocycle(breaks, loc.f_transit, f_shuffle)
 end
 
+function abelianize{R <: AbstractInterval}(angle::R, loc::CaterpillarLocSys, depth::Integer)
+  # build and evolve cocycle
+  orig = cocycle(angle, loc)
+  iter = power_twostep(orig, depth)
+  
+  # abelianize
+  ab = IntervalExchange.abelianize(orig, iter)
+  ab_transit = [block.f_transit for block in ab.blocks_by_in]
+  CaterpillarLocSys(ab_transit)
+end
+
+symmetric_caterpillar(m4, m5, m7, m8, m9, a, b) = CaterpillarLocSys(
+  Array[
+    b*inv(m9)*a,
+    b*inv(m8)*a,
+    b*inv(m7)*a,
+    m9,
+    m8,
+    m7,
+    inv(a)*b,
+    m5,
+    m4,
+    inv(a)*inv(b),
+    inv(a)*inv(m5)*inv(b),
+    inv(a)*inv(m4)*inv(b),
+    a*inv(b)
+  ]
+)
+
 function almost_flat_caterpillar(g)
   m4 = g[4]
   m5 = g[3]
@@ -59,7 +70,7 @@ function almost_flat_caterpillar(g)
   m9 = m8*inv(m7)*m5*inv(m4)
   a = -m5*inv(m4)
   b = -inv(m4)*m5
-  CaterpillarLocSys(m4, m5, m7, m8, m9, a, b)
+  symmetric_caterpillar(m4, m5, m7, m8, m9, a, b)
 end
 
 end
