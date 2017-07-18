@@ -1,8 +1,9 @@
-##include("interval_exchange.jl")
-##include("caterpillar.jl")
-##include("rectangle.jl")
-##include("regular.jl")
-##include("cayley_crawler.jl")
+include("interval_exchange.jl")
+include("caterpillar.jl")
+include("square.jl")
+include("regular.jl")
+include("cayley_crawler.jl")
+include("punkd_torus.jl")
 
 module Examples
 
@@ -75,13 +76,10 @@ end
 # compute the shear parameters of an SL(2,C) cocycle
 function shears(orig)
   # evolve cocycle
-  iter = orig
-  for _ in 1:4
-    iter = twostep(iter)
-  end
+  iter = power_twostep(orig, 4)
   
   # abelianize
-  ab = abelianize(orig, iter)
+  ab = IntervalExchange.abelianize(orig, iter)
   [bl.f_transit[1,1] for bl in ab.blocks_by_in]
 end
 
@@ -184,9 +182,10 @@ expconj(t) =
 function shear_ex(cyc, transit, perturbation; highres = false)
   # no perturbation
   println("=== no perturbation\n")
-  data_no = shear_data(cyc(transit), highres ? 300 : 18)
+  cyc_no = cyc(transit)
+  data_no = shear_data(cyc_no, highres ? 300 : 18)
   p_no = shear_plot(data_no)
-  page_height = length(transit)*3cm + 1cm
+  page_height = length(cyc_no(4@interval(π)/4).blocks_by_in)*3cm + 1cm
   draw(PDF("no-perturbation.pdf", 30cm, page_height), p_no)
   println()
   
@@ -208,7 +207,7 @@ end
 
 function square_shear_ex(k; highres = false)
   cyc = transit -> begin
-    loc = SquareLocSys{AbstractInterval}(transit...)
+    loc = GenSquareLocSys(transit...)
     angle -> Square.cocycle(angle, loc)
   end
   perturbation = Matrix[

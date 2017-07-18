@@ -1,10 +1,3 @@
-include("interval_exchange.jl")
-include("caterpillar.jl")
-include("square.jl")
-include("regular.jl")
-include("cayley_crawler.jl")
-include("punkd_torus.jl")
-
 module Lamination
 
 export SOLID, HORO, LaminationTheme, tacos, bone, render

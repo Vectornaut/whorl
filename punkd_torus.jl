@@ -7,7 +7,6 @@ using
   Crawl,
   PoincaréDisk,
   Compose
-  ##Examples
 
 export PunkdTorusLocSys
 
