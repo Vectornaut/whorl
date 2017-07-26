@@ -172,10 +172,10 @@ end
 # given an ideal polygon, return the function that takes a möbius transformation
 # m, applies it to the polygon, and draws the result with the given drawing
 # function
-orbiter(p::IdealPolygon, eps, draw, shift = eye(2)) =
+orbiter(p::IdealPolygon, eps, draw, shift = eye(2); diam = [2, 3]) =
   m -> begin
     verts = [möbius_map(shift*m, v) for v in p.verts]
-    if eps == nothing || abs2(verts[2] - verts[3]) > eps*eps
+    if eps == nothing || abs2(verts[diam[1]] - verts[diam[2]]) > eps*eps
       return draw(verts, p.sing)
     else
       return compose(context())

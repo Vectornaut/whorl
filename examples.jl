@@ -412,6 +412,44 @@ function movie(; shape = CaterpillarLocSys, ascent = 2, eps = 1e-3, theme = taco
   end
 end
 
+# === latitude geodesic on a punctured torus
+
+# draw some lifts of the geodesic around the latitude of a punctured torus. note
+# that you can't hit all the lifts just by increasing the ascent of the crawler.
+function latitude_geodesic(; eps = 1e-3, theme = shell, svg = false)
+  # set up local system
+  loc = PunkdTorusLocSys(2, 1/3)
+  
+  # set up crawler
+  crawler = FreeCrawler(4, 3)
+  branches = [loc.e_transit^k * loc.n_transit * loc.w_transit^k for k in -1:2]
+  findhome!(crawler, vcat(branches, map(inv, branches)))
+  
+  # start a list of layers
+  layers = []
+  
+  # draw geodesic lifts
+  stable_lines = [stable(loc.e_transit), stable(loc.w_transit)]
+  base = IdealPolygon(1, [planeproj(v) for v in stable_lines])
+  lifts = mapcollect(orbiter(base, eps, polygon_penciller(theme), diam = [1, 2]), crawler)
+  lift_gp = compose(context(), lifts..., linewidth(0.1mm), fill(nothing))
+  push!(layers, lift_gp)
+  
+  # draw background
+  if theme.diskcolor != nothing
+    disk = compose(context(), circle(), fill(theme.diskcolor), stroke(nothing))
+    push!(layers, disk)
+  end
+  
+  # render
+  picture = compose(context(), layers...)
+  if svg
+    picture |> SVG("latitude_geodesic.svg", 7cm, 7cm)
+  else
+    picture |> PDF("latitude_geodesic.pdf", 7cm, 7cm)
+  end
+end
+
 # === ideal triangulation of a punctured torus ===
 
 const strawberry_sunrise = [
