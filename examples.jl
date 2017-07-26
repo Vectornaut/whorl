@@ -1,9 +1,11 @@
+include("cayley_crawler.jl")
+include("regular.jl")
 include("interval_exchange.jl")
 include("caterpillar.jl")
 include("square.jl")
-include("regular.jl")
-include("cayley_crawler.jl")
 include("punkd_torus.jl")
+include("quasicrystal.jl")
+include("lamination.jl")
 
 module Examples
 
@@ -16,8 +18,10 @@ using
   Crawl,
   ValidatedNumerics,
   IntervalExchange,
-  Square,
   Caterpillar,
+  Square,
+  PunkdTorus,
+  Quasicrystal,
   Lamination
 
 import Regular
@@ -231,6 +235,128 @@ function caterpillar_shear_ex(; highres = false)
   shear_ex(cyc, Regular.generators(4, 4), perturbation, highres = highres)
 end
 
+# === abelianization map for local systems on a square
+
+function square_ab_data(level_curves, cyc_family, window = false, neg = false)
+  level_col = []
+  x1_col = []
+  x2_col = []
+  
+  flip = neg ? -1 : 1
+  
+  if window == false
+    for i in 1:length(level_curves)
+      for params in level_curves[i]
+        exp_x = shears(cyc_family(params))
+        push!(level_col, params[1])
+        push!(x1_col, log(flip * real(exp_x[1])))
+        push!(x2_col, log(flip * real(exp_x[2])))
+      end
+    end
+  else
+    for level in level_curves
+      # march downward
+      step = 0.005
+      t = 1
+      x = [0, 0]
+      while true
+        exp_x = shears(cyc_family((level, exp(t))))
+        x = [log(flip * real(u)) for u in exp_x]
+        if x[1] < 1.5*window[1] || 1.5*window[2] < x[1]
+          step /= 2
+          t += step
+        else
+          push!(level_col, level)
+          push!(x1_col, x[1])
+          push!(x2_col, x[2])
+          if x[1] < 1.05*window[1] || 1.05*window[2] < x[1]
+            break
+          else
+            t -= step
+          end
+        end
+      end
+      
+      # march upward
+      step = 0.005
+      t = 1 + step
+      x = [0, 0]
+      while true
+        exp_x = shears(cyc_family((level, exp(t))))
+        x = [log(flip * real(u)) for u in exp_x]
+        if x[1] < 1.5*window[1] || 1.5*window[2] < x[1] || x[2] < 1.5*window[3]
+          step /= 2
+          t -= step
+        else
+          unshift!(level_col, level)
+          unshift!(x1_col, x[1])
+          unshift!(x2_col, x[2])
+          if x[1] < 1.05*window[1] || 1.05*window[2] < x[1] || x[2] < 1.05*window[3]
+            break
+          else
+            t += step
+          end
+        end
+      end
+    end
+  end
+  
+  DataFrame(
+    Any[level_col, x1_col, x2_col],
+    map(Symbol, ["level", "x1", "x2"])
+  )
+end
+
+function square_ab_plot(data, angle, window, levelname)
+  fade = t -> RGB(0/255, (30*(1-t) + 216*t)/255, (140*(1-t) + 180*t)/255)
+  levels_layer = layer(data, x = :x1, y = :x2, color = :level, Geom.path)
+  bdry_layer = layer(
+    x = [1.05*window[1], 1.05*window[2]],
+    y = [-t*mid(tan(angle)) for t in [1.05*window[1], 1.05*window[2]]],
+    Geom.path,
+    Theme(default_color = colorant"black")
+  )
+  plot(
+    levels_layer, bdry_layer,
+    Scale.color_asinh(colormap = fade),
+    Coord.cartesian(
+      xmin = window[1], xmax = window[2],
+      ymin = window[3], ymax = window[4],
+      fixed = true
+    ),
+    Guide.xlabel("log (<i>A</i><sub>ab</sub><sup>+</sup>)<sub>1</sub>"),
+    Guide.ylabel("log (<i>A</i><sub>ab</sub><sup>+</sup>)<sub>2</sub>"),
+    Guide.colorkey(levelname)
+  )
+end
+
+function punkd_torus_plot(; angle = @interval(3//7))
+  level_curves = Any[
+    [(exp(s), t) for t in linspace(-6.2, 6.2, 64)]
+    for s in linspace(-2, 2, 30)
+  ]
+  fam = p -> begin
+    loc = PunkdTorusLocSys(p[1], p[2])
+    Square.cocycle(angle, loc)
+  end
+  window = (-3, 3, -3, 3)
+  data = square_ab_data(level_curves, fam)
+  plot = square_ab_plot(data, angle, window, "length")
+  plot |> PDF("punkd-torus-spec-coords.pdf", 20cm, 16cm)
+end
+
+function quasicrystal_plot(; angle = @interval(3//7))
+  level_curves = vcat(linspace(0.4, 4.4, 21), linspace(-0.4, -1.4, 6))
+  fam = p -> begin
+    loc = QuasicrystalLocSys(p[1], p[2])
+    Square.cocycle(angle, loc)
+  end
+  window = (-2, 2, -2, 2)
+  data = square_ab_data(level_curves, fam, window, true)
+  plot = square_ab_plot(data, angle, (-2, 1, -2, 2), "binding energy")
+  plot |> PDF("quasicrystal-spec-coords.pdf", 20cm, 16cm)
+end
+
 # === geodesic lamination movie
 
 # the first two terms of a sawtooth wave, modified to zero out the jerk at the
@@ -241,25 +367,42 @@ function easing(t)
   (1 + (x / (1+1/26))) / 2
 end
 
-function movie(; ascent = 2, eps = 1e-3, theme = tacos, testframe = true, center = nothing, svg = false, verbose = true)
-  # enumerate symmetry group elements
-  transit = Regular.generators(4, 4)
-  dbl_transit = [transit; [inv(t) for t in transit]]
-  
-  # set up local system
-  loc = almost_flat_caterpillar(transit);
-  
-  # set up crawler
-  crawler = TileCrawler(4, 4, ascent)
-  findhome!(crawler, dbl_transit)
+function movie(; shape = CaterpillarLocSys, ascent = 2, eps = 1e-3, theme = tacos, testframe = true, center = nothing, svg = false, verbose = true)
+  if shape == CaterpillarLocSys
+    # enumerate symmetry group elements
+    transit = Regular.generators(4, 4)
+    dbl_transit = [transit; [inv(t) for t in transit]]
+    
+    # set up local system
+    loc = almost_flat_caterpillar(transit);
+    
+    # set up crawler
+    crawler = TileCrawler(4, 4, ascent)
+    findhome!(crawler, dbl_transit)
+    
+    # set angle range
+    test_angle = @interval(3π/4 + 1//11)
+    start = @interval(358//114)
+    fin = @interval(180//114)
+  elseif shape == PunkdTorusLocSys
+    # set up local system
+    loc = PunkdTorusLocSys(2, 1/3)
+    
+    # set up crawler
+    crawler = FreeCrawler(2, 5)
+    findhome!(crawler, [loc.n_transit, loc.e_transit, loc.s_transit, loc.w_transit])
+    
+    # set angle range
+    test_angle = @interval(3//7)
+    start = @interval(179//114)
+    fin = @interval(1//114)
+  end
   
   # render frames
   if testframe
     println("Test frame")
-    @time(Lamination.render(@interval(3π/4 + 1//11), loc, crawler, eps, theme, center = center, svg = svg, verbose = verbose))
+    @time(Lamination.render(test_angle, loc, crawler, eps, theme, center = center, svg = svg, verbose = verbose))
   else
-    start = @interval(358//114)
-    fin = @interval(180//114)
     n = 25
     for t in 0:n
       println("Frame $t")

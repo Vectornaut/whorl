@@ -1,6 +1,18 @@
 module Lamination
 
-export SOLID, HORO, LaminationTheme, tacos, bone, render
+export
+  SOLID,
+  HORO,
+  LaminationTheme,
+  tacos,
+  bone,
+  shell,
+  polygon_penciller,
+  polygon_inker,
+  triangle_inker,
+  IdealPolygon,
+  orbiter,
+  render
 
 using
   Colors,
@@ -20,10 +32,11 @@ const SOLID = 0
 const HORO = 1
 
 type LaminationTheme
-  leafcolor # the color of the leaves
-  fillcolor # the colors of the complementary triangles
-  fillstyle # solid or horocyclic
-  diskcolor # the color of the background disk
+  leafcolor  # the color of the leaves
+  fillcolor  # the colors of the complementary triangles
+  fillstyle  # solid or horocyclic
+  checkcolor # the color of the fundamental domain checkers
+  diskcolor  # the color of the background disk
 end
 
 const tacos = LaminationTheme(
@@ -35,6 +48,7 @@ const tacos = LaminationTheme(
     RGB(0/255, 200/255, 146/255)
   ],       # fillcolor
   SOLID,   # fillstyle
+  nothing, # checkcolor
   nothing  # diskcolor
 )
 
@@ -42,35 +56,51 @@ const bone = LaminationTheme(
   RGB(172/255, 146/255, 122/255),       # leafcolor
   fill(RGB(99/255, 96/255, 83/255), 4), # fillcolor
   HORO,                                 # fillstyle
+  nothing,                              # checkcolor
   RGB(39/255, 36/255, 33/255)           # diskcolor
 )
 
+const shell = LaminationTheme(
+  RGB(0/255, 30/255, 140/255),           # leafcolor
+  fill(RGB(0/255, 150/255, 173/255), 4), # fillcolor
+  HORO,                                  # fillstyle
+  RGB(235/255, 233/255, 229/255),        # checkcolor
+  RGB(1, 1, 1)                           # diskcolor
+)
+
 polygon_penciller(theme::LaminationTheme) =
-  (vertices, sing) -> compose(
+  (verts, sing) -> compose(
     context(),
-    ideal_edges(vertices),
+    ideal_edges(verts...),
     stroke(theme.leafcolor)
+  )
+
+polygon_inker(theme::LaminationTheme) =
+  (verts, sing) -> compose(
+    context(),
+    ideal_path(verts...),
+    fill(theme.checkcolor)
   )
 
 function triangle_inker(theme::LaminationTheme)
   if theme.fillstyle == SOLID
-    return (vertices, sing) -> compose(
+    return (verts, sing) -> compose(
       context(),
-      ideal_path(vertices...),
+      ideal_path(verts...),
       fill(theme.fillcolor[sing])
     )
   elseif theme.fillstyle == HORO
-    return (vertices, sing) -> compose(
+    return (verts, sing) -> compose(
       context(),
-      horotriangle(vertices..., 69, 1/21, 4e-3),
-      stroke(theme.fillcolor[j.sing])
+      horotriangle(verts..., 69, 1/21, 4e-3),
+      stroke(theme.fillcolor[sing])
     )
   end
 end
 
 # === ideal polygons
 
-type IdealTriangle
+type IdealPolygon
   sing::Integer
   verts
 end
@@ -88,7 +118,7 @@ end
 # find the triangle formed by the forward- and backward-stable lines at a jump
 # in a cocycle
 triangulate(j::Jump) =
-  IdealTriangle(
+  IdealPolygon(
     j.sing,
     [planeproj(v) for v in [j.pivot_stable, j.right_stable, j.left_stable]]
   )
@@ -122,7 +152,7 @@ function triangulate{R <: AbstractInterval}(angle::R, loc::PunkdTorusLocSys, dep
   # find the triangle to the right of the critical leaf rising out of the
   # northwest puncture
   nw_verts = [planeproj(v) for v in [
-    eigvecs(loc.s_transit * loc.e_transit * loc.n_transit * loc.w_transit)[:,1],
+    loc.punks[1],
     orig.blocks_by_out[2].b_transit * stable(startblock(2, iter).b_transit),
     stable(first(iter.blocks_by_in).f_transit)
   ]]
@@ -130,23 +160,23 @@ function triangulate{R <: AbstractInterval}(angle::R, loc::PunkdTorusLocSys, dep
   # find the triangle to the left of the critical leaf rising out of the
   # southeast puncture
   se_verts = [planeproj(v) for v in [
-    eigvecs(loc.n_transit * loc.w_transit * loc.s_transit * loc.e_transit)[:,1],
+    loc.punks[3],
     stable(last(iter.blocks_by_in).f_transit),
     orig.blocks_by_out[1].b_transit * stable(endblock(1, iter).b_transit)
   ]]
   
   # return
-  [IdealTriangle(1, nw_verts), IdealTriangle(2, se_verts)]
+  [IdealPolygon(1, nw_verts), IdealPolygon(2, se_verts)]
 end
 
-# given an ideal triangle, return the function that takes a möbius
-# transformation m, applies it to the triangle, and draws the result with the
-# given drawing function
-orbiter(t::IdealTriangle, eps, draw, shift = eye(2)) =
+# given an ideal polygon, return the function that takes a möbius transformation
+# m, applies it to the polygon, and draws the result with the given drawing
+# function
+orbiter(p::IdealPolygon, eps, draw, shift = eye(2)) =
   m -> begin
-    verts = [möbius_map(shift*m, v) for v in t.verts]
+    verts = [möbius_map(shift*m, v) for v in p.verts]
     if eps == nothing || abs2(verts[2] - verts[3]) > eps*eps
-      return draw(verts, t.sing)
+      return draw(verts, p.sing)
     else
       return compose(context())
     end
@@ -213,6 +243,14 @@ function render{R <: AbstractInterval}(
       fill_gp = compose(context(), fills..., linewidth(0.1mm), fill(nothing))
     end
     push!(layers, fill_gp)
+  end
+  
+  # draw fundamental domain checkers
+  if theme.checkcolor != nothing && isa(loc, PunkdTorusLocSys)
+    fund = IdealPolygon(1, [planeproj(v) for v in loc.punks])
+    checks = altcollect(orbiter(fund, eps, polygon_inker(theme), shift), crawler)
+    check_gp = compose(context(), checks...)
+    push!(layers, check_gp)
   end
   
   # draw background

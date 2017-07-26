@@ -2,7 +2,16 @@ module PoincaréDisk
 
 using Compose
 
-export möbius_map, pts_to_pts, stable, planeproj, geodesic, ideal_edges, ideal_path, horotriangle, geodesic_orbit
+export
+  möbius_map,
+  pts_to_pts,
+  stable,
+  planeproj,
+  geodesic,
+  ideal_edges,
+  ideal_path,
+  horotriangle,
+  geodesic_orbit
 
 # === möbius transformations
 

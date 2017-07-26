@@ -1,6 +1,6 @@
 module Crawl
 
-export findhome!, mapcollect, CayleyCrawler, FreeCrawler, TileCrawler
+export findhome!, mapcollect, altcollect, CayleyCrawler, FreeCrawler, TileCrawler
 
 const ROOT     =  3
 const CLIMBER  =  0
@@ -29,6 +29,16 @@ mapcollect(f::Function, crawler::CayleyCrawler) =
     return [f(crawler.home)]
   else
     return vcat(f(crawler.home), [mapcollect(f, sh) for sh in crawler.shoots]...)
+  end
+
+altcollect(f::Function, crawler::CayleyCrawler, include = true) =
+  if isempty(crawler.shoots)
+    return include ? [f(crawler.home)] : []
+  else
+    return vcat(
+      include ? f(crawler.home) : [],
+      [altcollect(f, sh, !include) for sh in crawler.shoots]...
+    )
   end
 
 type FreeCrawler <: CayleyCrawler
