@@ -330,7 +330,7 @@ function square_ab_plot(data, angle, window, levelname)
   )
 end
 
-function punkd_torus_plot(; angle = @interval(3//7))
+function punkd_torus_plot(; angle = @interval(3//7), svg = false)
   level_curves = Any[
     [(exp(s), t) for t in linspace(-6.2, 6.2, 64)]
     for s in linspace(-2, 2, 30)
@@ -342,10 +342,10 @@ function punkd_torus_plot(; angle = @interval(3//7))
   window = (-3, 3, -3, 3)
   data = square_ab_data(level_curves, fam)
   plot = square_ab_plot(data, angle, window, "length")
-  plot |> PDF("punkd-torus-spec-coords.pdf", 20cm, 16cm)
+  plot |> (svg ? SVG : PDF)("punkd-torus-ab-map.$(svg ? "svg" : "pdf")", 20cm, 16cm)
 end
 
-function quasicrystal_plot(; angle = @interval(3//7))
+function quasicrystal_plot(; angle = @interval(3//7), svg = false)
   level_curves = vcat(linspace(0.4, 4.4, 21), linspace(-0.4, -1.4, 6))
   fam = p -> begin
     loc = QuasicrystalLocSys(p[1], p[2])
@@ -354,7 +354,7 @@ function quasicrystal_plot(; angle = @interval(3//7))
   window = (-2, 2, -2, 2)
   data = square_ab_data(level_curves, fam, window, true)
   plot = square_ab_plot(data, angle, (-2, 1, -2, 2), "binding energy")
-  plot |> PDF("quasicrystal-spec-coords.pdf", 20cm, 16cm)
+  plot |> (svg ? SVG : PDF)("quasicrystal-ab-map.$(svg ? "svg" : "pdf")", 20cm, 16cm)
 end
 
 # === geodesic lamination movie
