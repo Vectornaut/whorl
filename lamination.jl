@@ -272,4 +272,61 @@ function render{R <: AbstractInterval}(
   end
 end
 
+# === candy stripes
+
+# visualize the foliation of `loc` at the given angle by running the critical
+# leaves out through 2^`depth` returns and then coloring each point in the Masur
+# polygon with the singularity of the nearest critical leaf
+function candystripes{R <: AbstractInterval}(angle::R, loc::CaterpillarLocSys, depth::Integer, theme; verbose = false)
+  # build and evolve cocycle
+  orig = Caterpillar.cocycle(angle, loc)
+  iter = power_twostep(orig, depth, verbose = verbose)
+  
+  # find break points
+  leftbreak = (
+    mid(orig.blocks_by_in[1].in_left),
+    orig.blocks_by_out[orig.blocks_by_in[1].orig_out - 1].sing
+  )
+  rightbreak = (
+    mid(orig.blocks_by_in[end].in_right),
+    orig.blocks_by_in[end].sing
+  )
+  breakpts = scancollect(
+    iter,
+    typeof(leftbreak),
+    f_fn = (left, right, pivot) -> (mid(left.in_right), left.sing),
+    b_fn = (left, right, pivot) -> (mid(left.out_right), left.sing)
+  )
+  prepend!(breakpts, fill(leftbreak, 2))
+  append!(breakpts, fill(rightbreak, 2))
+  
+  # fill stripes
+  stripes = Context[]
+  for t in 2:(length(breakpts) - 1)
+    (prevloc, _) = breakpts[t-1]
+    (loc, sing) = breakpts[t]
+    (nextloc, _) = breakpts[t+1]
+    leftside = (prevloc + loc)/2
+    rightside = (loc + nextloc)/2
+    push!(
+      stripes,
+      compose(
+        context((prevloc + loc)/2, 0, (nextloc - prevloc)/2, 1),
+        rectangle(),
+        ##context(),
+        ##polygon([(leftside, 0), (rightside, 0), (rightside, 1), (leftside, 1)]),
+        fill(theme.fillcolor[sing])
+      )
+    )
+  end
+  
+  # return
+  ##horiz_angle = atan2(@interval(10), @interval(7)) + angle - @interval(π/2)
+  ##compose(
+  ##  context(units = UnitBox(-rightbreak[1], -rightbreak[1], 2rightbreak[1], 2rightbreak[1])),
+  ##  (context(rotation = Rotation(0.9)), stripes...)
+  ##)
+  compose(context(units = UnitBox(0, 0, rightbreak[1], rightbreak[1])), stripes...)
+end
+
 end
