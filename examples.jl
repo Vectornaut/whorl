@@ -89,9 +89,11 @@ end
 
 # find the Masur polygon of a deflated genus-2 surface
 function deflation_ex()
+  angle = @interval(3π/4 + 1//11)
+  
   # build cocycle and compute shears along first-return paths
   loc = almost_flat_caterpillar(Regular.generators(4, 4))
-  orig = Caterpillar.cocycle(@interval(3π/4 + 1//11), loc)
+  orig = Caterpillar.cocycle(angle, loc)
   x = shears(orig)
   
   # compute shears along odd paths around polygon sides
@@ -104,30 +106,11 @@ function deflation_ex()
   y[9] = inv(x[8])*x[13]*inv(x[11])*x[10]
   y[10] = inv(x[9])*x[8]*x[13]*inv(x[12])*x[11]
   y[13] = inv(x[12])*x[11]*inv(x[10])*inv(x[3])*x[2]*inv(x[1])
-  ## confirmed the version without inverses, and ruled out the version with
-  ## inverses, by checking whether the polygon lines up with itself along flip
-  ## gluings
   y[1] = y[4]
   y[2] = y[5]
   y[3] = y[6]
   y[11] = y[8]
   y[12] = y[9]
-  ##y[1] = inv(y[4])
-  ##y[2] = inv(y[5])
-  ##y[3] = inv(y[6])
-  ##y[11] = inv(y[8])
-  ##y[12] = inv(y[9])
-  
-  # unit test: the shears along opposite odd paths should be inverses
-  println(inv(y[10]))
-  println(inv(x[7])*x[12]*inv(x[11])*x[9]*inv(x[8]))
-  println()
-  println(inv(y[7]))
-  println(x[3]*inv(x[2])*x[1]*x[12]*inv(x[11])*x[10])
-  println()
-  println(inv(y[13]))
-  println(x[9]*inv(x[8])*x[6]*inv(x[5])*x[4])
-  println()
   
   # find side runs of Masur polygon
   runs = hcat(
@@ -136,24 +119,34 @@ function deflation_ex()
   )
   
   # list front vertices
-  f_vtc = map(p -> tuple(p...), cumsum([runs[t,:] for t in 1:length(y)]))
-  unshift!(f_vtc, (0, 0))
+  ##f_vtc = map(p -> tuple(p...), cumsum([runs[t,:] for t in 1:length(y)]))
+  ##unshift!(f_vtc, (0, 0))
   
   # list back vertices
+  ##f_shuffle = [7, 12, 11, 10, 9, 8, 13, 6, 5, 4, 3, 2, 1]
+  ##b_vtc = map(p -> tuple(p...), cumsum([runs[t,:] for t in f_shuffle]))
+  ##unshift!(b_vtc, (0, 0))
+  
+  # list vertices
   f_shuffle = [7, 12, 11, 10, 9, 8, 13, 6, 5, 4, 3, 2, 1]
-  b_vtc = map(p -> tuple(p...), cumsum([runs[t,:] for t in f_shuffle]))
-  unshift!(b_vtc, (0, 0))
+  runsaround = [
+    [runs[t,:] for t in 1:length(y)];
+    [-runs[t,:] for t in reverse(f_shuffle[2:end])]
+  ]
+  vtc = map(p -> tuple(p...), cumsum(runsaround))
+  unshift!(vtc, (0, 0))
   
-  for v in f_vtc
-    println(v)
-  end
-  
-  drawlines = vtc -> [line([vtc[t], vtc[t+1]]) for t in 1:(length(vtc) - 1)]
   compose(
     context(units = UnitBox(0, -10, mid(orig.blocks_by_in[end].in_right), 20)),
-    (context(), drawlines(f_vtc)..., stroke("Black")),
-    (context(), drawlines(b_vtc)..., stroke("Tomato"))
+    (context(), polygon(vtc)),
+    candystripes(angle, loc, 0, tacos)
   )
+  ##drawlines = vtc -> [line([vtc[t], vtc[t+1]]) for t in 1:(length(vtc) - 1)]
+  ##compose(
+  ##  context(units = UnitBox(0, -10, mid(orig.blocks_by_in[end].in_right), 20)),
+  ##  (context(), drawlines(f_vtc)..., stroke("Black")),
+  ##  (context(), drawlines(b_vtc)..., stroke("Tomato"))
+  ##)
 end
 
 # linspace doesn't work with Interval objects, so here's a slapdash replacement

@@ -12,7 +12,8 @@ export
   triangle_inker,
   IdealPolygon,
   orbiter,
-  render
+  render,
+  candystripes
 
 using
   Colors,
@@ -326,7 +327,7 @@ function candystripes{R <: AbstractInterval}(angle::R, loc::CaterpillarLocSys, d
   ##  context(units = UnitBox(-rightbreak[1], -rightbreak[1], 2rightbreak[1], 2rightbreak[1])),
   ##  (context(rotation = Rotation(0.9)), stripes...)
   ##)
-  compose(context(units = UnitBox(0, 0, rightbreak[1], rightbreak[1])), stripes...)
+  compose(context(units = UnitBox(0, 0, rightbreak[1], 1)), stripes...)
 end
 
 end
