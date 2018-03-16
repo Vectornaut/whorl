@@ -4,6 +4,7 @@ export
   SOLID,
   HORO,
   LaminationTheme,
+  limeade,
   tacos,
   bone,
   shell,
@@ -39,6 +40,19 @@ type LaminationTheme
   checkcolor # the color of the fundamental domain checkers
   diskcolor  # the color of the background disk
 end
+
+const limeade = LaminationTheme(
+  nothing, # leafcolor
+  [
+    RGB(255/255, 1/255, 73/255),
+    RGB(255/255, 121/255, 1/255),
+    RGB(255/255, 210/255, 0/255),
+    RGB(118/255, 200/255, 0/255)
+  ],       # fillcolor
+  SOLID,   # fillstyle
+  nothing, # checkcolor
+  nothing  # diskcolor
+)
 
 const tacos = LaminationTheme(
   nothing, # leafcolor

@@ -136,17 +136,17 @@ function deflation_ex()
   vtc = map(p -> tuple(p...), cumsum(runsaround))
   unshift!(vtc, (0, 0))
   
-  compose(
-    context(units = UnitBox(0, -10, mid(orig.blocks_by_in[end].in_right), 20)),
+  # compute dimensions
+  width = mid(orig.blocks_by_in[end].in_right)
+  bottom = min([v[2] for v in vtc]...)
+  height = max([v[2] for v in vtc]...) - bottom
+  
+  picture = compose(
+    context(units = UnitBox(0, bottom, width, height)),
     (context(), polygon(vtc)),
-    candystripes(angle, loc, 0, tacos)
+    candystripes(angle, loc, 3, tacos)
   )
-  ##drawlines = vtc -> [line([vtc[t], vtc[t+1]]) for t in 1:(length(vtc) - 1)]
-  ##compose(
-  ##  context(units = UnitBox(0, -10, mid(orig.blocks_by_in[end].in_right), 20)),
-  ##  (context(), drawlines(f_vtc)..., stroke("Black")),
-  ##  (context(), drawlines(b_vtc)..., stroke("Tomato"))
-  ##)
+  picture |> SVG("deflated.svg", 9cm, (height/width)*9cm)
 end
 
 # linspace doesn't work with Interval objects, so here's a slapdash replacement
