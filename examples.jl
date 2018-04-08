@@ -88,11 +88,13 @@ function shears(orig)
 end
 
 # find the Masur polygon of a deflated genus-2 surface
-function deflation_ex()
-  angle = @interval(3π/4 + 1//11)
-  
+function render_deflation{R <: AbstractInterval}(
+  angle::R,
+  g;
+  theme = tacos
+)
   # build cocycle and compute shears along first-return paths
-  loc = almost_flat_caterpillar(Regular.generators(4, 4))
+  loc = almost_flat_caterpillar(g)
   orig = Caterpillar.cocycle(angle, loc)
   x = shears(orig)
   
@@ -118,15 +120,6 @@ function deflation_ex()
     [-log(-real(shear)) for shear in y]
   )
   
-  # list front vertices
-  ##f_vtc = map(p -> tuple(p...), cumsum([runs[t,:] for t in 1:length(y)]))
-  ##unshift!(f_vtc, (0, 0))
-  
-  # list back vertices
-  ##f_shuffle = [7, 12, 11, 10, 9, 8, 13, 6, 5, 4, 3, 2, 1]
-  ##b_vtc = map(p -> tuple(p...), cumsum([runs[t,:] for t in f_shuffle]))
-  ##unshift!(b_vtc, (0, 0))
-  
   # list vertices
   f_shuffle = [7, 12, 11, 10, 9, 8, 13, 6, 5, 4, 3, 2, 1]
   runsaround = [
@@ -141,12 +134,56 @@ function deflation_ex()
   bottom = min([v[2] for v in vtc]...)
   height = max([v[2] for v in vtc]...) - bottom
   
-  picture = compose(
+  # return
+  compose(
     context(units = UnitBox(0, bottom, width, height)),
     (context(), polygon(vtc)),
-    candystripes(angle, loc, 3, tacos)
+    candystripes(angle, loc, 3, theme)
   )
-  picture |> SVG("deflated.svg", 9cm, (height/width)*9cm)
+end
+
+function deflation_movie(; ascent = 2, eps = 1e-3, theme = tacos, testframe = true, center = nothing, svg = false, verbose = true)
+  angle = @interval(3π/4 + 1//11)
+  crawler = TileCrawler(4, 4, ascent)
+  if testframe
+    n = 1
+    timepoints = [0]
+  else
+    n = 25
+    timepoints = 1:n
+  end
+  for t in timepoints
+    println(testframe ? "Test frame" : "Frame $t")
+    u = easing(t//n)
+    
+    # find Dehn-twisted holonomies
+    transit = Regular.generators(4, 4)
+    frame = [[1, 1] [-1, 1]] * [[im, 0] [0, -im]]
+    twist = frame * diagm([1/exp(u/2), exp(u/2)]) * inv(frame)
+    for s in 1:3
+      transit[s] = twist*transit[s]
+    end
+    
+    # set up crawler
+    findhome!(crawler, [transit; [inv(t) for t in transit]])
+    
+    # draw frame
+    lam_pic = @time(Lamination.render(angle, almost_flat_caterpillar(transit), crawler, eps, theme, center = center, verbose = verbose))
+    defl_pic = @time(render_deflation(angle, transit, theme = theme))
+    frame = compose(context(),
+      compose(context(0.05, 0.025, 0.9, 0.45), lam_pic),
+      compose(context(0.05, 0.525, 0.9, 0.45), defl_pic)
+    )
+    if testframe
+      if svg
+        draw(SVG("deflation_test.svg", 7cm, 14cm), frame)
+      else
+        draw(PDF("deflation_test.pdf", 7cm, 14cm), frame)
+      end
+    else
+      draw(PNG(@sprintf("deflation_mov/frame%02i.png", t), 500px, 1000px), frame)
+    end
+  end
 end
 
 # linspace doesn't work with Interval objects, so here's a slapdash replacement
@@ -463,13 +500,19 @@ function movie(; shape = CaterpillarLocSys, ascent = 2, eps = 1e-3, theme = taco
   # render frames
   if testframe
     println("Test frame")
-    @time(Lamination.render(test_angle, loc, crawler, eps, theme, center = center, svg = svg, verbose = verbose))
+    frame = @time(Lamination.render(test_angle, loc, crawler, eps, theme, center = center, verbose = verbose))
+    if svg
+      draw(SVG("triangle_test.svg", 7cm, 7cm), frame)
+    else
+      draw(PDF("triangle_test.pdf", 7cm, 7cm), frame)
+    end
   else
     n = 25
     for t in 0:n
       println("Frame $t")
       u = easing(@interval(t//n))
-      @time(Lamination.render(@interval((1-u)*start + u*fin), loc, crawler, eps, theme, frame = t, center = center, verbose = verbose))
+      frame = @time(Lamination.render(@interval((1-u)*start + u*fin), loc, crawler, eps, theme, center = center, verbose = verbose))
+      draw(PNG(@sprintf("triangle_mov/frame%02i.png", t), 500px, 500px), frame)
     end
   end
 end

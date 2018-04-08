@@ -212,9 +212,7 @@ function render{R <: AbstractInterval}(
   crawler,
   eps,
   theme;
-  frame = nothing,
   center = nothing,
-  svg = false,
   verbose = false
 )
   # get complementary triangles
@@ -274,17 +272,8 @@ function render{R <: AbstractInterval}(
     push!(layers, disk)
   end
   
-  # render
-  picture = compose(context(), layers...)
-  if frame == nothing
-    if svg
-      draw(SVG("triangle_test.svg", 7cm, 7cm), picture)
-    else
-      draw(PDF("triangle_test.pdf", 7cm, 7cm), picture)
-    end
-  else
-    draw(PNG(@sprintf("triangle_mov/frame%02i.png", frame), 500px, 500px), picture)
-  end
+  # return
+  compose(context(), layers...)
 end
 
 # === candy stripes
@@ -328,19 +317,12 @@ function candystripes{R <: AbstractInterval}(angle::R, loc::CaterpillarLocSys, d
       compose(
         context((prevloc + loc)/2, 0, (nextloc - prevloc)/2, 1),
         rectangle(),
-        ##context(),
-        ##polygon([(leftside, 0), (rightside, 0), (rightside, 1), (leftside, 1)]),
         fill(theme.fillcolor[sing])
       )
     )
   end
   
   # return
-  ##horiz_angle = atan2(@interval(10), @interval(7)) + angle - @interval(π/2)
-  ##compose(
-  ##  context(units = UnitBox(-rightbreak[1], -rightbreak[1], 2rightbreak[1], 2rightbreak[1])),
-  ##  (context(rotation = Rotation(0.9)), stripes...)
-  ##)
   compose(context(units = UnitBox(0, 0, rightbreak[1], 1)), stripes...)
 end
 
