@@ -186,6 +186,27 @@ function deflation_movie(; ascent = 2, eps = 1e-3, theme = tacos, testframe = tr
   end
 end
 
+function bridges_poster()
+  # set parameters
+  angle = @interval(3π/4 + 1//11)
+  ascent = 3
+  eps = 5e-4
+  
+  # set up crawler
+  transit = Regular.generators(4, 4)
+  crawler = TileCrawler(4, 4, ascent)
+  findhome!(crawler, [transit; [inv(t) for t in transit]])
+  
+  # draw poster
+  lam_pic = @time(Lamination.render(angle, almost_flat_caterpillar(transit), crawler, eps, tacos, verbose = true))
+  defl_pic = @time(render_deflation(angle, transit, theme = tacos))
+  poster = compose(context(),
+    compose(context(3.25/22, 13.872/33, 15.5/22, 15.5/33), lam_pic),
+    compose(context(1.417/22, 1.552/33, 19.165/22, 9.139/33), defl_pic)
+  )
+  draw(SVG("poster_test.svg", 16inch, 24inch), poster)
+end
+
 # linspace doesn't work with Interval objects, so here's a slapdash replacement
 function grid(start, fin, res::Integer)
   map(u -> (1-u)*start + u*fin, [@interval(t//(res-1)) for t in 0:res-1])

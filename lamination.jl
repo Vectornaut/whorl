@@ -193,7 +193,7 @@ orbiter(p::IdealPolygon, eps, draw, shift = eye(2); diam = [2, 3]) =
     if eps == nothing || abs2(verts[diam[1]] - verts[diam[2]]) > eps*eps
       return draw(verts, p.sing)
     else
-      return compose(context())
+      return nothing
     end
   end
 
@@ -237,7 +237,7 @@ function render{R <: AbstractInterval}(
     push!(layers, clip)
     
     leaves = vcat([
-      mapcollect(orbiter(t, eps, polygon_penciller(theme), shift), crawler)
+      mapcollect(orbiter(t, eps, polygon_penciller(theme), shift), crawler, prune = true)
       for t in triangles
     ]...)
     leaf_gp = compose(context(), leaves..., linewidth(0.1mm), fill(nothing))
@@ -246,14 +246,21 @@ function render{R <: AbstractInterval}(
   
   # fill complementary triangles
   if theme.fillcolor != nothing
-    fills = vcat([
-      mapcollect(orbiter(t, eps, triangle_inker(theme), shift), crawler)
+    if verbose
+      print("  Inking triangles\n  ")
+    end
+    fills = @time(vcat([
+      mapcollect(orbiter(t, eps, triangle_inker(theme), shift), crawler, prune = true)
       for t in triangles
-    ]...)
+    ]...))
+    if verbose
+      println("    $(length(fills)) triangles")
+      print("  Composing triangles\n  ")
+    end
     if theme.fillstyle == SOLID
-      fill_gp = compose(context(), fills...)
+      fill_gp = @time(compose(context(), fills...))
     elseif theme.fillstyle == HORO
-      fill_gp = compose(context(), fills..., linewidth(0.1mm), fill(nothing))
+      fill_gp = @time(compose(context(), fills..., linewidth(0.1mm), fill(nothing)))
     end
     push!(layers, fill_gp)
   end

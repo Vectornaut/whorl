@@ -24,12 +24,19 @@ function findhome!(crawler::CayleyCrawler, transit, base=eye(2))
   end
 end
 
-mapcollect(f::Function, crawler::CayleyCrawler) =
-  if isempty(crawler.shoots)
-    return [f(crawler.home)]
+function mapcollect(f::Function, crawler::CayleyCrawler; prune = false)
+  value = f(crawler.home)
+  if prune && value == nothing
+    collected = []
   else
-    return vcat(f(crawler.home), [mapcollect(f, sh) for sh in crawler.shoots]...)
+    collected = [value]
   end
+  if isempty(crawler.shoots)
+    return collected
+  else
+    return vcat(collected, [mapcollect(f, sh, prune = prune) for sh in crawler.shoots]...)
+  end
+end
 
 altcollect(f::Function, crawler::CayleyCrawler, include = true) =
   if isempty(crawler.shoots)
