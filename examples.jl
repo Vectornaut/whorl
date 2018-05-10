@@ -191,13 +191,18 @@ end
 # 2) reflect the Masur polygon and its candy stripes horizontally
 # 3) separate the four colors into layers
 # 4) clip each separated candy stripe layer with a copy of the Masur polygon
+# pantone color assignments:
+# strawberry = Hexachrome Magenta U
+# orange = 1505 U
+# gold = 108 U
+# aqua = 3265 U
 function bridges_poster()
   # set parameters. printed size of universal cover is about 812 points, and Kid
   # Icarus can print lines as thin as 1 point reliably, so eps should be below
   # 1.23e-3
   angle = @interval(3π/4 + 1//11)
-  ascent = 3
-  eps = 4.5e-4
+  ascent = 4
+  eps = 4e-4
   
   # set up crawler
   transit = Regular.generators(4, 4)

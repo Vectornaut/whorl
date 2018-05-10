@@ -84,11 +84,7 @@ const shell = LaminationTheme(
 )
 
 polygon_penciller(theme::LaminationTheme) =
-  (verts, sing) -> compose(
-    context(),
-    ideal_edges(verts...),
-    stroke(theme.leafcolor)
-  )
+  (verts, sing) -> ideal_edges(verts...)
 
 polygon_inker(theme::LaminationTheme) =
   (verts, sing) -> compose(
@@ -99,17 +95,9 @@ polygon_inker(theme::LaminationTheme) =
 
 function triangle_inker(theme::LaminationTheme)
   if theme.fillstyle == SOLID
-    return (verts, sing) -> compose(
-      context(),
-      ideal_path(verts...),
-      fill(theme.fillcolor[sing])
-    )
+    return (verts, sing) -> ideal_path(verts...)
   elseif theme.fillstyle == HORO
-    return (verts, sing) -> compose(
-      context(),
-      horotriangle(verts..., 69, 1/21, 4e-3),
-      stroke(theme.fillcolor[sing])
-    )
+    return (verts, sing) -> horotriangle(verts..., 69, 1/21, 4e-3)
   end
 end
 
@@ -240,8 +228,8 @@ function render{R <: AbstractInterval}(
       mapcollect(orbiter(t, eps, polygon_penciller(theme), shift), crawler, prune = true)
       for t in triangles
     ]...)
-    leaf_gp = compose(context(), leaves..., linewidth(0.1mm), fill(nothing))
-    push!(layers, leaf_gp)
+    leaf_layer = compose(context(), leaves..., stroke(theme.leafcolor), linewidth(0.1mm), fill(nothing))
+    push!(layers, leaf_layer)
   end
   
   # fill complementary triangles
@@ -249,20 +237,28 @@ function render{R <: AbstractInterval}(
     if verbose
       print("  Inking triangles\n  ")
     end
-    fills = @time(vcat([
-      mapcollect(orbiter(t, eps, triangle_inker(theme), shift), crawler, prune = true)
+    if theme.fillstyle == SOLID
+      colorprop = fill
+    elseif theme.fillstyle == HORO
+      colorprop = stroke
+    end
+    fill_gps = @time([
+      compose(
+        context(),
+        mapcollect(orbiter(t, eps, triangle_inker(theme), shift), crawler, prune = true)...,
+        colorprop(theme.fillcolor[t.sing])
+      )
       for t in triangles
-    ]...))
+    ])
     if verbose
-      println("    $(length(fills)) triangles")
       print("  Composing triangles\n  ")
     end
     if theme.fillstyle == SOLID
-      fill_gp = @time(compose(context(), fills...))
+      fill_layer = @time(compose(context(), fill_gps...))
     elseif theme.fillstyle == HORO
-      fill_gp = @time(compose(context(), fills..., linewidth(0.1mm), fill(nothing)))
+      fill_layer = @time(compose(context(), fill_gps..., linewidth(0.1mm), fill(nothing)))
     end
-    push!(layers, fill_gp)
+    push!(layers, fill_layer)
   end
   
   # draw fundamental domain checkers
