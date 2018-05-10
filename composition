@@ -1,0 +1,73 @@
+=== composition instructions ===
+
+To compose the final image:
+1) Reflect the universal cover and the candy-striped Masur polygon vertically.
+2) Reflect the Masur polygon and its candy stripes horizontally.
+3) Separate the four colors into layers.
+4) Clip each separated candy stripe layer with a copy of the Masur polygon.
+
+Pantone color assignments:
+  strawberry = Hexachrome Magenta U
+  orange = 1505 U
+  gold = 108 U
+  aqua = 3265 U
+
+~~~~~~~~~
+
+The code below shows that as you go clockwise around the sides of the Masur polygon, the repelling fixed points of the outward transitions go counterclockwise around the boundary of the Poincaré disk.
+
+In the finished image, we should reflect the Masur polygon horizontally so that the repelling fixed points move with the sides.
+
+In the lamination movie, the angle sweeps counterclockwise, but the movie shows the triangle vertices going clockwise around the boundary of the Poincaré disk. This confirms that the Poincaré disk is coming out vertically reflected, because Compose's (0, 1) axis points downward.
+
+The Masur polygon comes out vertically reflected for the same reason.
+
+~~~~~~~~~
+
+include("examples.jl")
+
+loc = Caterpillar.almost_flat_caterpillar(transit);
+
+for ex in Caterpillar.cocycle(@interval(338//114), loc).blocks_by_in
+  print(ex)
+  Examples.prettyprint(PoincaréDisk.planeproj(eig(Hermitian(ex.f_transit'*ex.f_transit))[2][:,1]))
+  println()
+end
+
+=== output ===
+[0.000, 16.960] => [132.040, 149.000]   0.970 +   0.245im
+[16.960, 19.988] => [129.012, 132.040]   0.968 +   0.253im
+[19.988, 39.976] => [109.024, 129.012]   0.960 +   0.281im
+[39.976, 56.936] => [92.064, 109.024]   0.924 +   0.383im
+[56.936, 59.964] => [89.036, 92.064]   0.707 +   0.707im
+[59.964, 79.952] => [69.048, 89.036]   0.000 +   1.000im
+[79.952, 82.980] => [0.000, 3.028]  -0.516 +   0.857im
+[82.980, 102.968] => [46.032, 66.020]  -0.707 +   0.707im
+[102.968, 105.996] => [43.004, 46.032]  -1.000 +   0.000im
+[105.996, 122.956] => [26.044, 43.004]  -0.975 -   0.221im
+[122.956, 142.944] => [6.056, 26.044]  -0.975 -   0.224im
+[142.944, 145.972] => [3.028, 6.056]  -0.972 -   0.236im
+[145.972, 149.000] => [66.020, 69.048]  -0.970 -   0.241im
+=== ===
+
+for ex in reverse(Caterpillar.cocycle(@interval(338//114), loc).blocks_by_out)
+  print(ex)
+  Examples.prettyprint(PoincaréDisk.planeproj(eig(Hermitian(ex.b_transit'*ex.b_transit))[2][:,1]))
+  println()
+end
+
+=== output ===
+[0.000, 16.960] => [132.040, 149.000]  -0.970 -   0.245im
+[16.960, 19.988] => [129.012, 132.040]  -0.968 -   0.253im
+[19.988, 39.976] => [109.024, 129.012]  -0.960 -   0.281im
+[39.976, 56.936] => [92.064, 109.024]  -0.924 -   0.383im
+[56.936, 59.964] => [89.036, 92.064]  -0.707 -   0.707im
+[59.964, 79.952] => [69.048, 89.036]  -0.000 -   1.000im
+[145.972, 149.000] => [66.020, 69.048]   0.516 -   0.857im
+[82.980, 102.968] => [46.032, 66.020]   0.707 -   0.707im
+[102.968, 105.996] => [43.004, 46.032]   1.000 -   0.000im
+[105.996, 122.956] => [26.044, 43.004]   0.975 +   0.221im
+[122.956, 142.944] => [6.056, 26.044]   0.975 +   0.224im
+[142.944, 145.972] => [3.028, 6.056]   0.972 +   0.236im
+[79.952, 82.980] => [0.000, 3.028]   0.970 +   0.241im
+=== ===

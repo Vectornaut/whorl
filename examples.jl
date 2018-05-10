@@ -91,7 +91,8 @@ end
 function render_deflation{R <: AbstractInterval}(
   angle::R,
   g;
-  theme = tacos
+  theme = tacos,
+  half = false
 )
   # build cocycle and compute shears along first-return paths
   loc = almost_flat_caterpillar(g)
@@ -135,9 +136,14 @@ function render_deflation{R <: AbstractInterval}(
   height = max([v[2] for v in vtc]...) - bottom
   
   # return
+  if half
+    desired_vtc = vcat(vtc[4:10], vtc[17:23])
+  else
+    desired_vtc = vtc
+  end
   compose(
     context(units = UnitBox(0, bottom, width, height)),
-    (context(), polygon(vtc)),
+    (context(), polygon(desired_vtc)),
     candystripes(angle, loc, 3, theme)
   )
 end
@@ -192,10 +198,10 @@ end
 # 3) separate the four colors into layers
 # 4) clip each separated candy stripe layer with a copy of the Masur polygon
 # pantone color assignments:
-# strawberry = Hexachrome Magenta U
-# orange = 1505 U
-# gold = 108 U
-# aqua = 3265 U
+#   strawberry = Hexachrome Magenta U
+#   orange = 1505 U
+#   gold = 108 U
+#   aqua = 3265 U
 function bridges_poster()
   # set parameters. printed size of universal cover is about 812 points, and Kid
   # Icarus can print lines as thin as 1 point reliably, so eps should be below
@@ -211,7 +217,7 @@ function bridges_poster()
   
   # draw poster
   lam_pic = @time(Lamination.render(angle, almost_flat_caterpillar(transit), crawler, eps, tacos, verbose = true))
-  defl_pic = @time(render_deflation(angle, transit, theme = tacos))
+  defl_pic = @time(render_deflation(angle, transit, theme = tacos, half = true))
   full_w = 558.8;  full_h = 838.2
   lam_x = 82.550;  lam_y = 352.350; lam_side = 393.700
   defl_x = 36.001; defl_y = 39.430; defl_w = 486.797;  defl_h = 232.139
@@ -219,7 +225,7 @@ function bridges_poster()
     compose(context(lam_x/full_w, 1 - (lam_y + lam_side)/full_h, lam_side/full_w, lam_side/full_h), lam_pic),
     compose(context(defl_x/full_w, 1 - (defl_y + defl_h)/full_h, defl_w/full_w, defl_h/full_h), defl_pic)
   )
-  draw(SVG("poster_test.svg", 16inch, 24inch), poster)
+  draw(SVG("pre-poster.svg", 16inch, 24inch), poster)
 end
 
 # linspace doesn't work with Interval objects, so here's a slapdash replacement
