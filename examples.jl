@@ -186,11 +186,18 @@ function deflation_movie(; ascent = 2, eps = 1e-3, theme = tacos, testframe = tr
   end
 end
 
+# to compose the final image from pre-poster.svg:
+# 1) reflect the universal cover and the candy-striped Masur polygon vertically
+# 2) reflect the Masur polygon and its candy stripes horizontally
+# 3) separate the four colors into layers
+# 4) clip each separated candy stripe layer with a copy of the Masur polygon
 function bridges_poster()
-  # set parameters
+  # set parameters. printed size of universal cover is about 812 points, and Kid
+  # Icarus can print lines as thin as 1 point reliably, so eps should be below
+  # 1.23e-3
   angle = @interval(3π/4 + 1//11)
   ascent = 3
-  eps = 5e-4
+  eps = 4.5e-4
   
   # set up crawler
   transit = Regular.generators(4, 4)
@@ -200,9 +207,12 @@ function bridges_poster()
   # draw poster
   lam_pic = @time(Lamination.render(angle, almost_flat_caterpillar(transit), crawler, eps, tacos, verbose = true))
   defl_pic = @time(render_deflation(angle, transit, theme = tacos))
+  full_w = 558.8;  full_h = 838.2
+  lam_x = 82.550;  lam_y = 352.350; lam_side = 393.700
+  defl_x = 36.001; defl_y = 39.430; defl_w = 486.797;  defl_h = 232.139
   poster = compose(context(),
-    compose(context(3.25/22, 13.872/33, 15.5/22, 15.5/33), lam_pic),
-    compose(context(1.417/22, 1.552/33, 19.165/22, 9.139/33), defl_pic)
+    compose(context(lam_x/full_w, 1 - (lam_y + lam_side)/full_h, lam_side/full_w, lam_side/full_h), lam_pic),
+    compose(context(defl_x/full_w, 1 - (defl_y + defl_h)/full_h, defl_w/full_w, defl_h/full_h), defl_pic)
   )
   draw(SVG("poster_test.svg", 16inch, 24inch), poster)
 end
