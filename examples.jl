@@ -53,8 +53,14 @@ function printcocycle(a::Cocycle)
   for bl in a.blocks_by_in
     i += 1
     @printf("Block %-5d", i)
-    println("$bl\n")
-    prettyprint(bl.f_transit, 4)
+    if length(bl.f_transit) == 1
+      prettyprint(bl.f_transit)
+      print(" "^4)
+      println(bl)
+    else
+      println("$bl\n")
+      prettyprint(bl.f_transit, 4)
+    end
   end
 end
 
@@ -75,21 +81,6 @@ function abelianization_ex()
   printcocycle(ab)
 end
 
-# print the foward shuffle of an interval exchange cocycle, sage-style
-##function print_f_shuffle(a)
-##  n = length(a.blocks_by_out)
-##  
-##  for t in 1:n
-##    print(string(t))
-##    print(t < n ? " " : "\n")
-##  end
-##  
-##  for (s, t) in enumerate(sortperm([bl.in_left for bl in a.blocks_by_out]))
-##    print(string(t))
-##    print(s < n ? " " : "\n")
-##  end
-##end
-
 function sage_port_test()
   in_lengths = [sqrt(@interval(2)), sqrt(@interval(3)), sqrt(@interval(5)), sqrt(@interval(7))]
   a = IntervalExchange.Cocycle(cumsum(in_lengths), [2, 3, 5, 7], [4, 1, 3, 2])
@@ -97,19 +88,21 @@ function sage_port_test()
   a2 = twostep(a)
   a3 = twostep(a2)
   
-  for bl in a.blocks_by_in
-    println(bl)
-  end
+  printcocycle(a)
   println()
   
-  for bl in a2.blocks_by_in
-    println(bl)
-  end
+  printcocycle(a2)
   println()
   
-  for bl in a3.blocks_by_in
-    println(bl)
-  end
+  printcocycle(a3)
+  println()
+  
+  println("-"^80)
+  println()
+  
+  f_transit = [[2 0; 0 -2], [0 3; 3 0], [1 5; 0 1], [1 0; 7 1]]
+  b = IntervalExchange.Cocycle(cumsum(in_lengths), f_transit, [4, 1, 3, 2])
+  printcocycle(twostep(b))
 end
 
 # === shear parameter plots
