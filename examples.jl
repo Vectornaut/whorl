@@ -75,6 +75,43 @@ function abelianization_ex()
   printcocycle(ab)
 end
 
+# print the foward shuffle of an interval exchange cocycle, sage-style
+##function print_f_shuffle(a)
+##  n = length(a.blocks_by_out)
+##  
+##  for t in 1:n
+##    print(string(t))
+##    print(t < n ? " " : "\n")
+##  end
+##  
+##  for (s, t) in enumerate(sortperm([bl.in_left for bl in a.blocks_by_out]))
+##    print(string(t))
+##    print(s < n ? " " : "\n")
+##  end
+##end
+
+function sage_port_test()
+  in_lengths = [sqrt(@interval(2)), sqrt(@interval(3)), sqrt(@interval(5)), sqrt(@interval(7))]
+  a = IntervalExchange.Cocycle(cumsum(in_lengths), [2, 3, 5, 7], [4, 1, 3, 2])
+  ##b = IntervalExchange.Cocycle(sum(in_lengths) * collect(1:4)/4, [20, 30, 50, 70], [4, 3, 2, 1])
+  a2 = twostep(a)
+  a3 = twostep(a2)
+  
+  for bl in a.blocks_by_in
+    println(bl)
+  end
+  println()
+  
+  for bl in a2.blocks_by_in
+    println(bl)
+  end
+  println()
+  
+  for bl in a3.blocks_by_in
+    println(bl)
+  end
+end
+
 # === shear parameter plots
 
 # compute the shear parameters of an SL(2,C) cocycle
