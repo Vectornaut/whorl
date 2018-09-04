@@ -376,6 +376,71 @@ function caterpillar_shear_ex(; highres = false)
   shear_ex(cyc, Regular.generators(4, 4), perturbation, highres = highres)
 end
 
+# === limit curves
+
+function elem_generators(fp, a)
+  last_fp = sum([fp[k] for k in 1:2:length(fp)]) - sum([fp[k] for k in 2:2:length(fp)])
+  if iseven(length(fp))
+    last_fp = -last_fp
+  end
+  [[a b; 0 1/a] for b in (1/a - a)*[fp; last_fp]]
+end
+
+function all_products(length, transit)
+  if (length > 1)
+    prev = all_products(length-1, transit)
+    return vcat([[t*g for g in prev] for t in transit]...)
+  else
+    return transit
+  end
+end
+
+# a dot at the most contracted eigenline of m
+function eig_dot(m, radius)
+  vals, vecs = eig(m)
+  x, y = reim(planeproj(vecs[:,indmin(map(abs, vals))]))
+  box = context(x - radius, y - radius, 2radius, 2radius)
+  compose(box, Compose.circle())
+end
+
+# a dot at the most contracted line of m
+function stable_dot(m, radius, color = nothing)
+  x, y = reim(planeproj(stable(m)))
+  box = context(x - radius, y - radius, 2radius, 2radius)
+  if color == nothing
+    compose(box, Compose.circle())
+  else
+    compose(box, Compose.circle(), fill(color))
+  end
+end
+
+function elem_ex()
+  # set parameters
+  transit = elem_generators([cis(2*pi*k/6) for k in 0:4], sqrt(3))
+  
+  # draw limit set
+  limit_set = [eig_dot(m, 0.002) for m in all_products(5, transit)]
+  
+  # build and evolve cocycle
+  in_lengths = [sin((@interval(k) - 1//5) * @interval(pi)/length(transit)) for k in 1:length(transit)]
+  orig = Cocycle(cumsum(in_lengths), transit, collect(length(transit):-1:1))
+  iter = power_twostep(orig, 8)
+  
+  # draw limit curve
+  limit_curve = [
+    stable_dot(bl.f_transit, 0.004, "tomato")
+    for bl in iter.blocks_by_in
+  ]
+  
+  # compose picture
+  picture = compose(context(units = UnitBox(-1, -1, 2, 2)),
+    (context(), limit_curve...),
+    (context(), limit_set...),
+    (context(), rectangle(), fill("white"))
+  )
+  draw(SVG("elem-limit.svg", 7cm, 7cm), picture)
+end
+
 # === abelianization map for local systems on a square
 
 function square_ab_data(level_curves, cyc_family, window = false, neg = false)

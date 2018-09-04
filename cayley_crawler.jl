@@ -1,6 +1,6 @@
 module Crawl
 
-export findhome!, mapcollect, altcollect, CayleyCrawler, FreeCrawler, TileCrawler
+export findhome!, mapcollect, altcollect, tipcollect, CayleyCrawler, FreeCrawler, TileCrawler
 
 const ROOT     =  3
 const CLIMBER  =  0
@@ -47,6 +47,19 @@ altcollect(f::Function, crawler::CayleyCrawler, include = true) =
       [altcollect(f, sh, !include) for sh in crawler.shoots]...
     )
   end
+
+function tipcollect(f::Function, crawler::CayleyCrawler; prune = false)
+  if isempty(crawler.shoots)
+    value = f(crawler.home)
+    if prune && value == nothing
+      return []
+    else
+      return [value]
+    end
+  else
+    return vcat([tipcollect(f, sh, prune = prune) for sh in crawler.shoots]...)
+  end
+end
 
 type FreeCrawler <: CayleyCrawler
   # the index of the generator represented by this edge of the Cayley graph,
