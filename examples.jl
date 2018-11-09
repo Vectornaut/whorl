@@ -26,6 +26,48 @@ using
 
 import Regular
 
+# === basic drawing
+
+function farey_tiles(; eps = 1e-3, theme = shell, svg = false)
+  # write down symmetry group generators in the upper half-plane model
+  farey_generators = [[1 2; 0 1], [1 0; 2 1], [1 -2; 0 1], [1 0; -2 1]]
+  
+  # write down the mobius transformation
+  # -i --> -1
+  #  1 -->  0
+  #  i -->  1
+  flatten = [[-im, 1] [im, 1]]
+  
+  # set up crawler
+  crawler = FreeCrawler(2, 5)
+  findhome!(crawler, [inv(flatten) * g * flatten for g in farey_generators])
+  
+  # start a list of layers
+  layers = []
+  
+  # draw triangle lifts
+  base = IdealPolygon(1, [1, im, -1])
+  leaves = mapcollect(orbiter(base, eps, polygon_penciller(theme)), crawler)
+  leaf_layer = compose(context(), leaves..., stroke(theme.leafcolor), linewidth(0.1mm), fill(nothing))
+  fills = mapcollect(orbiter(base, eps, polygon_inker(theme)), crawler)
+  fill_layer = compose(context(), fills..., fill(theme.checkcolor), stroke(nothing))
+  push!(layers, leaf_layer, fill_layer)
+  
+  # draw background
+  if theme.diskcolor != nothing
+    disk = compose(context(), Compose.circle(), fill(theme.diskcolor), stroke(nothing))
+    push!(layers, disk)
+  end
+  
+  # render
+  picture = compose(context(), layers...)
+  if svg
+    picture |> SVG("farey_tiles.svg", 7cm, 7cm)
+  else
+    picture |> PDF("farey_tiles.pdf", 7cm, 7cm)
+  end
+end
+
 # === abelianization
 
 # print a nicely formatted complex number
@@ -644,12 +686,12 @@ function latitude_geodesic(; eps = 1e-3, theme = shell, svg = false)
   stable_lines = [stable(loc.e_transit), stable(loc.w_transit)]
   base = IdealPolygon(1, [planeproj(v) for v in stable_lines])
   lifts = mapcollect(orbiter(base, eps, polygon_penciller(theme), diam = [1, 2]), crawler)
-  lift_gp = compose(context(), lifts..., linewidth(0.1mm), fill(nothing))
+  lift_gp = compose(context(), lifts..., stroke(theme.leafcolor), linewidth(0.1mm), fill(nothing))
   push!(layers, lift_gp)
   
   # draw background
   if theme.diskcolor != nothing
-    disk = compose(context(), circle(), fill(theme.diskcolor), stroke(nothing))
+    disk = compose(context(), Compose.circle(), fill(theme.diskcolor), stroke(nothing))
     push!(layers, disk)
   end
   
@@ -768,8 +810,8 @@ end
 
 function render_flip(crawler::CayleyCrawler, orbiters, name, foliate = false, svg = false)
   # draw background and boundary
-  disk = compose(context(), circle(), fill(chocolate[1]), stroke(nothing))
-  bdry = compose(context(), circle(), stroke("white"), linewidth(0.25mm), fill(nothing))
+  disk = compose(context(), Compose.circle(), fill(chocolate[1]), stroke(nothing))
+  bdry = compose(context(), Compose.circle(), stroke("white"), linewidth(0.25mm), fill(nothing))
   
   # draw lamination
   lam_gps = []
