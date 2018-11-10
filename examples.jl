@@ -666,6 +666,27 @@ function movie(; shape = CaterpillarLocSys, ascent = 2, eps = 1e-3, theme = taco
   end
 end
 
+# === folded punctured torus
+
+## testbed
+function folded_punkd()
+  test_theme = Lamination.LaminationTheme(
+    RGB(0/255, 30/255, 140/255),           # leafcolor
+    fill(RGB(0/255, 150/255, 173/255), 4), # fillcolor
+    Lamination.SOLID,                      # fillstyle
+    RGB(235/255, 233/255, 229/255),        # checkcolor
+    RGB(1, 1, 1)                           # diskcolor
+  )
+  
+  # draw
+  test_angle = @interval(3//7)
+  loc = PunkdTorus.PunkdTorusLocSys(2, 1/3)
+  picture = Lamination.renderfolded(test_angle, loc, 1e-3, test_theme, verbose=true)
+  
+  # render
+  draw(PDF("triangle_test.pdf", 7cm, 7cm), picture)
+end
+
 # === latitude geodesic on a punctured torus
 
 # draw some lifts of the geodesic around the latitude of a punctured torus. note

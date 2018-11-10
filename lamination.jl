@@ -279,6 +279,86 @@ function render{R <: AbstractInterval}(
   compose(context(), layers...)
 end
 
+# foliate the translation surface carrying `loc` at the given angle, pull the
+# leaves tight with respect to the folded hyperbolic structure described by
+# `loc`, and draw a piece of the universal cover of the folded surface. we draw
+# the triangles corresponding to the break points of the first return cocycle,
+# up to 4 returns
+function renderfolded{R <: AbstractInterval}(
+  angle::R,
+  loc,
+  eps,
+  theme;
+  verbose = false
+)
+  # list complementary triangles
+  orig = PunkdTorus.cocycle(angle, loc) ## will need to adapt to shape, at some point
+  iter = power_twostep(orig, 4, verbose = verbose)
+  jumps = scancollect(iter, Jump, f_fn = FJump, b_fn = BJump)
+  triangles = [triangulate(j) for j in jumps]
+  
+  # do centering, if requested
+  ## ...
+  
+  # start a list of layers
+  layers = []
+  
+  # draw leaves
+  ## ...
+  
+  # fill complementary triangles
+  if theme.fillcolor != nothing
+    if verbose
+      print("  Inking triangles\n  ")
+    end
+    inker = triangle_inker(theme)
+    front_fills = []
+    n = 0 ##
+    @time(for t in triangles
+      if eps == nothing || abs2(t.verts[2] - t.verts[3]) > eps*eps
+        push!(front_fills, compose(context(), inker(t.verts, t.sing), fill(RGB(1, n/length(triangles), n/(2*length(triangles))))))
+      end
+      n += 1
+    end)
+    if verbose
+      print("  Composing triangles\n  ")
+    end
+    fill_layer = @time(compose(context(), front_fills...))
+    push!(layers, fill_layer)
+  end
+  
+  ## ---
+  ref = triangulate(angle, loc, 4, verbose = verbose)
+  ref_fills = [
+    compose(context(), inker(t.verts, t.sing), fill("lightseagreen"))
+    for t in ref
+  ]
+  ref_layer = compose(context(), ref_fills...)
+  push!(layers, ref_layer)
+  
+  # set up crawler
+  crawler = FreeCrawler(2, 5)
+  findhome!(crawler, [loc.n_transit, loc.e_transit, loc.s_transit, loc.w_transit])
+  
+  # draw fundamental domain checkers
+  if theme.checkcolor != nothing && isa(loc, PunkdTorusLocSys)
+    fund = IdealPolygon(1, [planeproj(v) for v in loc.punks])
+    checks = altcollect(orbiter(fund, eps, polygon_inker(theme)), crawler)
+    check_gp = compose(context(), checks...)
+    push!(layers, check_gp)
+  end
+  ## ---
+  
+  # draw background
+  if theme.diskcolor != nothing
+    disk = compose(context(), circle(), fill(theme.diskcolor), stroke(nothing))
+    push!(layers, disk)
+  end
+  
+  # return
+  compose(context(), layers...)
+end
+
 # === candy stripes
 
 # visualize the foliation of `loc` at the given angle by running the critical
