@@ -191,9 +191,7 @@ orbiter(p::IdealPolygon, eps, draw, shift = eye(2); diam = [2, 3]) =
 # leaves tight with respect to the hyperbolic structure described by `loc`, and
 # draw the resulting geodesic lamination. we approximate the lamination by
 # finding its complementary triangles and tiling them using the given crawler
-# for the holonomy group. if a frame number is specified, render an
-# appropriately named bitmap to be used as a frame of a movie. otherwise, render
-# a PDF or SVG test frame.
+# for the holonomy group.
 function render{R <: AbstractInterval}(
   angle::R,
   loc,
@@ -283,7 +281,7 @@ end
 # leaves tight with respect to the folded hyperbolic structure described by
 # `loc`, and draw a piece of the universal cover of the folded surface. we draw
 # the triangles corresponding to the break points of the first return cocycle,
-# up to 4 returns
+# up to 4 returns.
 function renderfolded{R <: AbstractInterval}(
   angle::R,
   loc,
@@ -295,9 +293,6 @@ function renderfolded{R <: AbstractInterval}(
   orig = PunkdTorus.cocycle(angle, loc) ## will need to adapt to shape, at some point
   iter = power_twostep(orig, 4, verbose = verbose)
   jumps = scancollect(iter, Jump, f_fn = FJump, b_fn = BJump)
-  ##jumps = scancollect(iter, Jump, f_fn = FJump)
-  ##jumps = scancollect(iter, Jump, b_fn = BJump)
-  ##triangles = [triangulate(j) for j in jumps]
   
   # do centering, if requested
   ## ...
@@ -313,13 +308,12 @@ function renderfolded{R <: AbstractInterval}(
     if verbose
       print("  Inking triangles\n  ")
     end
+    fills = []
     inker = (verts, sing) -> ideal_path(verts...)
-    front_fills = []
-    back_fills = []
     palsize = Int(ceil(1.5length(jumps)))
-    frontcolors = sequential_palette(20, palsize, w=0.5, d=0.4, c=0.83, s=0.95, b=0.85, wcolor=RGB(1,1,0), dcolor=RGB(1,0,0))[end-length(jumps)+1:end]
-    backcolors = sequential_palette(265, palsize, w=0.15, d=0.2, c=0.88, s=0.5, b=0.7, wcolor=RGB(1,0,1), dcolor=RGB(1,0,0))[end-length(jumps)+1:end]
-    @time(for (j, fc, bc) in zip(jumps, frontcolors, backcolors)
+    frontpal = sequential_palette(20, palsize, w=0.5, d=0.4, c=0.83, s=0.95, b=0.85, wcolor=RGB(1,1,0), dcolor=RGB(1,0,0))[end-length(jumps)+1:end]
+    backpal = sequential_palette(265, palsize, w=0.15, d=0.2, c=0.88, s=0.5, b=0.7, wcolor=RGB(1,0,1), dcolor=RGB(1,0,0))[end-length(jumps)+1:end]
+    @time(for (j, frontcolor, backcolor) in zip(jumps, frontpal, backpal)
       t = triangulate(j)
       if eps == nothing || abs2(t.verts[2] - t.verts[3]) > eps*eps
         # measure orientation
@@ -328,22 +322,17 @@ function renderfolded{R <: AbstractInterval}(
         else
           sweep = (t.verts[2] - t.verts[3]) / (t.verts[1] - t.verts[3])
         end
-        ##if imag(sweep) > 0
-        ##if isa(j, FJump)
-        ##  c = RGB(1, 0, 0.6)
-        ##else
-        ##  c = RGB(0.5, 0, 0.3)
-        ##end
-        ## nice with disk color RGB(0.9, 0.8, 1)
-        push!(front_fills, compose(context(), inker(t.verts, t.sing), fill(imag(sweep) > 0 ? fc : bc)))
-        ##push!(front_fills, compose(context(), inker(t.verts, t.sing), fill(isa(j, FJump) ? fc : bc)))
+        push!(fills, compose(context(), inker(t.verts, t.sing), fill(imag(sweep) > 0 ? frontcolor : backcolor)))
+        ##push!(fills, compose(context(), inker(t.verts, t.sing), fill(isa(j, FJump) ? frontcolor : backcolor)))
       end
     end)
     if verbose
       print("  Composing triangles\n  ")
     end
-    fill_layer = @time(compose(context(), front_fills...))
-    push!(layers, fill_layer)
+    ##fill_layers = @time([
+    ##  compose(context(), fills[1:n]...)
+    ##  for n in 1:length(fills)
+    ##])
   end
   
   ## ---
@@ -369,13 +358,13 @@ function renderfolded{R <: AbstractInterval}(
   ## ---
   
   # draw background
-  if theme.diskcolor != nothing
-    disk = compose(context(), circle(), fill(RGB(0.96, 0.95, 0.94)), stroke(nothing))
-    push!(layers, disk)
-  end
+  disk = compose(context(), circle(), fill(RGB(0.96, 0.95, 0.94)), stroke(nothing))
   
   # return
-  compose(context(), layers...)
+  [
+    compose(context(), fills[n:end]..., disk)
+    for n in length(fills):-1:1
+  ]
 end
 
 # === candy stripes

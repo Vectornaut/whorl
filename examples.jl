@@ -669,7 +669,7 @@ end
 # === folded punctured torus
 
 ## testbed
-function folded_punkd()
+function folded_punkd(; testframe = true)
   test_theme = Lamination.LaminationTheme(
     RGB(0/255, 30/255, 140/255),           # leafcolor
     fill(RGB(0/255, 150/255, 173/255), 4), # fillcolor
@@ -679,20 +679,24 @@ function folded_punkd()
   )
   
   # draw
-  ##test_angle = @interval(3//7)
   test_angle = @interval(π/4 - 1//100)
-  ##loc = PunkdTorus.PunkdTorusLocSys(2, 1/3)
-  ##loc = Quasicrystal.QuasicrystalLocSys(sqrt(2), -1/sqrt(2), disk = true)
-  ##loc = Quasicrystal.QuasicrystalLocSys(sqrt(2), -1/sqrt(2) + 0.2, disk = true)
-  ##loc = Quasicrystal.QuasicrystalLocSys(-1, 0.5, disk = true)
-  loc = Quasicrystal.QuasicrystalLocSys(-2, 1, disk = true)
-  ##loc = Quasicrystal.QuasicrystalLocSys(-1, -0.6, disk = true) # butterfly? 9u9
-  ##loc = Quasicrystal.QuasicrystalLocSys(-1, -0.45, disk = true)
-  picture = Lamination.renderfolded(test_angle, loc, 1e-3, test_theme, verbose = true)
+  ##loc = Quasicrystal.QuasicrystalLocSys(-2, 1, disk = true)
+  ##loc = Quasicrystal.QuasicrystalLocSys(-2, 0.59, disk = true)
+  ##loc = Quasicrystal.QuasicrystalLocSys(-2, 0.58, disk = true)
+  ##loc = Quasicrystal.QuasicrystalLocSys(-2, -0.01, disk = true)
+  ##loc = Quasicrystal.QuasicrystalLocSys(-2, -0.02, disk = true)
+  ##loc = Quasicrystal.QuasicrystalLocSys(-2, -0.04, disk = true)
+  ##loc = Quasicrystal.QuasicrystalLocSys(-2, -0.06, disk = true)
+  frames = Lamination.renderfolded(test_angle, loc, 1e-3, test_theme, verbose = true)
   
   # render
-  draw(PDF("triangle_test.pdf", 7cm, 7cm), picture)
-  
+  if testframe
+    draw(PDF("triangle_test.pdf", 7cm, 7cm), frames[end])
+  else
+    for t in 1:length(frames)
+      draw(PDF(@sprintf("folded_mov/frame%02i.pdf", t), 7cm, 7cm), frames[t])
+    end
+  end
   print(shears(PunkdTorus.cocycle(test_angle, loc)))
 end
 
