@@ -675,16 +675,25 @@ function folded_punkd()
     fill(RGB(0/255, 150/255, 173/255), 4), # fillcolor
     Lamination.SOLID,                      # fillstyle
     RGB(235/255, 233/255, 229/255),        # checkcolor
-    RGB(1, 1, 1)                           # diskcolor
+    RGB(0.9, 0.8, 1)                       # diskcolor
   )
   
   # draw
-  test_angle = @interval(3//7)
-  loc = PunkdTorus.PunkdTorusLocSys(2, 1/3)
-  picture = Lamination.renderfolded(test_angle, loc, 1e-3, test_theme, verbose=true)
+  ##test_angle = @interval(3//7)
+  test_angle = @interval(π/4 - 1//100)
+  ##loc = PunkdTorus.PunkdTorusLocSys(2, 1/3)
+  ##loc = Quasicrystal.QuasicrystalLocSys(sqrt(2), -1/sqrt(2), disk = true)
+  ##loc = Quasicrystal.QuasicrystalLocSys(sqrt(2), -1/sqrt(2) + 0.2, disk = true)
+  ##loc = Quasicrystal.QuasicrystalLocSys(-1, 0.5, disk = true)
+  loc = Quasicrystal.QuasicrystalLocSys(-2, 1, disk = true)
+  ##loc = Quasicrystal.QuasicrystalLocSys(-1, -0.6, disk = true) # butterfly? 9u9
+  ##loc = Quasicrystal.QuasicrystalLocSys(-1, -0.45, disk = true)
+  picture = Lamination.renderfolded(test_angle, loc, 1e-3, test_theme, verbose = true)
   
   # render
   draw(PDF("triangle_test.pdf", 7cm, 7cm), picture)
+  
+  print(shears(PunkdTorus.cocycle(test_angle, loc)))
 end
 
 # === latitude geodesic on a punctured torus

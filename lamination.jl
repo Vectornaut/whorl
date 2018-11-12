@@ -295,7 +295,9 @@ function renderfolded{R <: AbstractInterval}(
   orig = PunkdTorus.cocycle(angle, loc) ## will need to adapt to shape, at some point
   iter = power_twostep(orig, 4, verbose = verbose)
   jumps = scancollect(iter, Jump, f_fn = FJump, b_fn = BJump)
-  triangles = [triangulate(j) for j in jumps]
+  ##jumps = scancollect(iter, Jump, f_fn = FJump)
+  ##jumps = scancollect(iter, Jump, b_fn = BJump)
+  ##triangles = [triangulate(j) for j in jumps]
   
   # do centering, if requested
   ## ...
@@ -311,14 +313,31 @@ function renderfolded{R <: AbstractInterval}(
     if verbose
       print("  Inking triangles\n  ")
     end
-    inker = triangle_inker(theme)
+    inker = (verts, sing) -> ideal_path(verts...)
     front_fills = []
-    n = 0 ##
-    @time(for t in triangles
+    back_fills = []
+    palsize = Int(ceil(1.5length(jumps)))
+    frontcolors = sequential_palette(20, palsize, w=0.5, d=0.4, c=0.83, s=0.95, b=0.85, wcolor=RGB(1,1,0), dcolor=RGB(1,0,0))[end-length(jumps)+1:end]
+    backcolors = sequential_palette(265, palsize, w=0.15, d=0.2, c=0.88, s=0.5, b=0.7, wcolor=RGB(1,0,1), dcolor=RGB(1,0,0))[end-length(jumps)+1:end]
+    @time(for (j, fc, bc) in zip(jumps, frontcolors, backcolors)
+      t = triangulate(j)
       if eps == nothing || abs2(t.verts[2] - t.verts[3]) > eps*eps
-        push!(front_fills, compose(context(), inker(t.verts, t.sing), fill(RGB(1, n/length(triangles), n/(2*length(triangles))))))
+        # measure orientation
+        if isa(j, FJump)
+          sweep = (t.verts[1] - t.verts[3]) / (t.verts[2] - t.verts[3])
+        else
+          sweep = (t.verts[2] - t.verts[3]) / (t.verts[1] - t.verts[3])
+        end
+        ##if imag(sweep) > 0
+        ##if isa(j, FJump)
+        ##  c = RGB(1, 0, 0.6)
+        ##else
+        ##  c = RGB(0.5, 0, 0.3)
+        ##end
+        ## nice with disk color RGB(0.9, 0.8, 1)
+        push!(front_fills, compose(context(), inker(t.verts, t.sing), fill(imag(sweep) > 0 ? fc : bc)))
+        ##push!(front_fills, compose(context(), inker(t.verts, t.sing), fill(isa(j, FJump) ? fc : bc)))
       end
-      n += 1
     end)
     if verbose
       print("  Composing triangles\n  ")
@@ -328,30 +347,30 @@ function renderfolded{R <: AbstractInterval}(
   end
   
   ## ---
-  ref = triangulate(angle, loc, 4, verbose = verbose)
-  ref_fills = [
-    compose(context(), inker(t.verts, t.sing), fill("lightseagreen"))
-    for t in ref
-  ]
-  ref_layer = compose(context(), ref_fills...)
-  push!(layers, ref_layer)
+  ##ref = triangulate(angle, loc, 4, verbose = verbose)
+  ##ref_fills = [
+  ##  compose(context(), inker(t.verts, t.sing), fill("lightseagreen"))
+  ##  for t in ref
+  ##]
+  ##ref_layer = compose(context(), ref_fills...)
+  ##push!(layers, ref_layer)
   
   # set up crawler
-  crawler = FreeCrawler(2, 5)
-  findhome!(crawler, [loc.n_transit, loc.e_transit, loc.s_transit, loc.w_transit])
+  ##crawler = FreeCrawler(2, 5)
+  ##findhome!(crawler, [loc.n_transit, loc.e_transit, loc.s_transit, loc.w_transit])
   
   # draw fundamental domain checkers
-  if theme.checkcolor != nothing && isa(loc, PunkdTorusLocSys)
-    fund = IdealPolygon(1, [planeproj(v) for v in loc.punks])
-    checks = altcollect(orbiter(fund, eps, polygon_inker(theme)), crawler)
-    check_gp = compose(context(), checks...)
-    push!(layers, check_gp)
-  end
+  ##if theme.checkcolor != nothing && isa(loc, PunkdTorusLocSys)
+  ##  fund = IdealPolygon(1, [planeproj(v) for v in loc.punks])
+  ##  checks = altcollect(orbiter(fund, eps, polygon_inker(theme)), crawler)
+  ##  check_gp = compose(context(), checks...)
+  ##  push!(layers, check_gp)
+  ##end
   ## ---
   
   # draw background
   if theme.diskcolor != nothing
-    disk = compose(context(), circle(), fill(theme.diskcolor), stroke(nothing))
+    disk = compose(context(), circle(), fill(RGB(0.96, 0.95, 0.94)), stroke(nothing))
     push!(layers, disk)
   end
   
