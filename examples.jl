@@ -14,6 +14,8 @@ using
   DataFrames,
   Colors,
   Compose,
+  PerceptualColourMaps,
+  JLD,
   PoincaréDisk,
   Crawl,
   ValidatedNumerics,
@@ -24,7 +26,7 @@ using
   Quasicrystal,
   Lamination
 
-import Regular
+import Regular, PyPlot
 
 # === basic drawing
 
@@ -669,35 +671,61 @@ end
 # === folded punctured torus
 
 ## testbed
-function folded_punkd(; testframe = true)
-  test_theme = Lamination.LaminationTheme(
-    RGB(0/255, 30/255, 140/255),           # leafcolor
-    fill(RGB(0/255, 150/255, 173/255), 4), # fillcolor
-    Lamination.SOLID,                      # fillstyle
-    RGB(235/255, 233/255, 229/255),        # checkcolor
-    RGB(0.9, 0.8, 1)                       # diskcolor
-  )
+function folded_punkd(; tumble = true, bitmap = false)
+  # set foliation angle
+  test_angle = @interval(π/4 - 1//1000)
   
-  # draw
-  test_angle = @interval(π/4 - 1//100)
-  ##loc = Quasicrystal.QuasicrystalLocSys(-2, 1, disk = true)
-  ##loc = Quasicrystal.QuasicrystalLocSys(-2, 0.59, disk = true)
-  ##loc = Quasicrystal.QuasicrystalLocSys(-2, 0.58, disk = true)
-  ##loc = Quasicrystal.QuasicrystalLocSys(-2, -0.01, disk = true)
-  ##loc = Quasicrystal.QuasicrystalLocSys(-2, -0.02, disk = true)
-  ##loc = Quasicrystal.QuasicrystalLocSys(-2, -0.04, disk = true)
-  ##loc = Quasicrystal.QuasicrystalLocSys(-2, -0.06, disk = true)
-  frames = Lamination.renderfolded(test_angle, loc, 1e-3, test_theme, verbose = true)
-  
-  # render
-  if testframe
-    draw(PDF("triangle_test.pdf", 7cm, 7cm), frames[end])
-  else
+  bg = compose(context(), rectangle(), fill("white"), stroke(nothing))
+  if tumble
+    loc = Quasicrystal.QuasicrystalLocSys(-2, 1, disk = true)
+    frames = Lamination.renderfolded(test_angle, loc, 1e-3, tumble = tumble)
     for t in 1:length(frames)
-      draw(PDF(@sprintf("folded_mov/frame%02i.pdf", t), 7cm, 7cm), frames[t])
+      if bitmap
+        draw(PNG(@sprintf("tumble_mov/frame%02i.png", t), 500px, 500px), compose(context(), frames[t], bg))
+      else
+        draw(PDF(@sprintf("tumble_mov/frame%02i.pdf", t), 7cm, 7cm), frames[t])
+      end
+    end
+  else
+    n = 300
+    for t in 0:n
+      println("Frame $t")
+      u = easing(t//n)
+      loc = Quasicrystal.QuasicrystalLocSys(-2, (1-u)*(4/5) + u*(-1/3), disk = true)
+      frame = @time(Lamination.renderfolded(test_angle, loc, 1e-3, tumble = tumble))
+      draw(PNG(@sprintf("sweep_mov/frame%03i.png", t), 400px, 400px), compose(context(), frame, bg))
     end
   end
-  print(shears(PunkdTorus.cocycle(test_angle, loc)))
+end
+
+function shear_plot_sweep()
+  # load data
+  e_list = load("spiraling_hops.jld", "e_list");
+  l_list = load("spiraling_hops.jld", "l_list");
+  x_grid = load("spiraling_hops.jld", "x_grid");
+  
+  # turn off screen output
+  PyPlot.ioff()
+  
+  n = 300
+  for t in 0:n
+    u = easing(t//n)
+    
+    size = 7
+    fig, ax = PyPlot.subplots(2, 1, figsize=(5, 2), dpi=80)
+    for k in 1:2
+      ax[k][:xaxis][:set_tick_params](labelsize=size)
+      ax[k][:yaxis][:set_tick_params](labelsize=size)
+      ax[k][:set_xlabel]("Re E", fontsize=size)
+      ax[k][:set_ylabel]("Im E", fontsize=size)
+      ax[k][:axvline]((1-u)*(4/5) + u*(-1/3), linewidth=1, color="black")
+      phaseplot = applycycliccolourmap(map(x -> atan2(imag(x[k]), real(x[k])), x_grid[51:152,:]), cmap("C2"), cyclelength = 2pi);
+      ax[k][:imshow](phaseplot, origin="lower", extent = [e_list[1], e_list[end], -l_list[51], l_list[51]])
+    end
+    fig[:tight_layout]()
+    PyPlot.savefig(@sprintf("sweep_mov/plot%03i.png", t))
+    PyPlot.close(fig)
+  end
 end
 
 # === latitude geodesic on a punctured torus

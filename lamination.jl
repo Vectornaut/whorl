@@ -285,8 +285,8 @@ end
 function renderfolded{R <: AbstractInterval}(
   angle::R,
   loc,
-  eps,
-  theme;
+  eps;
+  tumble = false,
   verbose = false
 )
   # list complementary triangles
@@ -304,67 +304,39 @@ function renderfolded{R <: AbstractInterval}(
   ## ...
   
   # fill complementary triangles
-  if theme.fillcolor != nothing
-    if verbose
-      print("  Inking triangles\n  ")
-    end
-    fills = []
-    inker = (verts, sing) -> ideal_path(verts...)
-    palsize = Int(ceil(1.5length(jumps)))
-    frontpal = sequential_palette(20, palsize, w=0.5, d=0.4, c=0.83, s=0.95, b=0.85, wcolor=RGB(1,1,0), dcolor=RGB(1,0,0))[end-length(jumps)+1:end]
-    backpal = sequential_palette(265, palsize, w=0.15, d=0.2, c=0.88, s=0.5, b=0.7, wcolor=RGB(1,0,1), dcolor=RGB(1,0,0))[end-length(jumps)+1:end]
-    @time(for (j, frontcolor, backcolor) in zip(jumps, frontpal, backpal)
-      t = triangulate(j)
-      if eps == nothing || abs2(t.verts[2] - t.verts[3]) > eps*eps
-        # measure orientation
-        if isa(j, FJump)
-          sweep = (t.verts[1] - t.verts[3]) / (t.verts[2] - t.verts[3])
-        else
-          sweep = (t.verts[2] - t.verts[3]) / (t.verts[1] - t.verts[3])
-        end
-        push!(fills, compose(context(), inker(t.verts, t.sing), fill(imag(sweep) > 0 ? frontcolor : backcolor)))
-        ##push!(fills, compose(context(), inker(t.verts, t.sing), fill(isa(j, FJump) ? frontcolor : backcolor)))
-      end
-    end)
-    if verbose
-      print("  Composing triangles\n  ")
-    end
-    ##fill_layers = @time([
-    ##  compose(context(), fills[1:n]...)
-    ##  for n in 1:length(fills)
-    ##])
+  if verbose
+    print("  Inking triangles\n  ")
   end
-  
-  ## ---
-  ##ref = triangulate(angle, loc, 4, verbose = verbose)
-  ##ref_fills = [
-  ##  compose(context(), inker(t.verts, t.sing), fill("lightseagreen"))
-  ##  for t in ref
-  ##]
-  ##ref_layer = compose(context(), ref_fills...)
-  ##push!(layers, ref_layer)
-  
-  # set up crawler
-  ##crawler = FreeCrawler(2, 5)
-  ##findhome!(crawler, [loc.n_transit, loc.e_transit, loc.s_transit, loc.w_transit])
-  
-  # draw fundamental domain checkers
-  ##if theme.checkcolor != nothing && isa(loc, PunkdTorusLocSys)
-  ##  fund = IdealPolygon(1, [planeproj(v) for v in loc.punks])
-  ##  checks = altcollect(orbiter(fund, eps, polygon_inker(theme)), crawler)
-  ##  check_gp = compose(context(), checks...)
-  ##  push!(layers, check_gp)
-  ##end
-  ## ---
+  fills = []
+  inker = (verts, sing) -> ideal_path(verts...)
+  palsize = Int(ceil(1.5length(jumps)))
+  frontpal = sequential_palette(20, palsize, w=0.5, d=0.4, c=0.83, s=0.95, b=0.85, wcolor=RGB(1,1,0), dcolor=RGB(1,0,0))[end-length(jumps)+1:end]
+  backpal = sequential_palette(265, palsize, w=0.15, d=0.2, c=0.88, s=0.5, b=0.7, wcolor=RGB(1,0,1), dcolor=RGB(1,0,0))[end-length(jumps)+1:end]
+  for (j, frontcolor, backcolor) in zip(jumps, frontpal, backpal)
+    t = triangulate(j)
+    if eps == nothing || abs2(t.verts[2] - t.verts[3]) > eps*eps
+      # measure orientation
+      if isa(j, FJump)
+        sweep = (t.verts[1] - t.verts[3]) / (t.verts[2] - t.verts[3])
+      else
+        sweep = (t.verts[2] - t.verts[3]) / (t.verts[1] - t.verts[3])
+      end
+      push!(fills, compose(context(), inker(t.verts, t.sing), fill(imag(sweep) > 0 ? frontcolor : backcolor)))
+    end
+  end
+  if verbose
+    print("  Composing triangles\n  ")
+  end
   
   # draw background
   disk = compose(context(), circle(), fill(RGB(0.96, 0.95, 0.94)), stroke(nothing))
   
   # return
-  [
-    compose(context(), fills[n:end]..., disk)
-    for n in length(fills):-1:1
-  ]
+  if tumble
+    [compose(context(), fills[n:end]..., disk) for n in length(fills):-1:1]
+  else
+    compose(context(), fills..., disk)
+  end
 end
 
 # === candy stripes
