@@ -698,11 +698,139 @@ function folded_punkd(; tumble = true, bitmap = false)
   end
 end
 
+## list of examples
+const HOPS_SHEARS = 1
+const HOPS_SHEARS_ZOOM = 2
+const SPIRALING_HOPS = 3
+const GOLDEN_HOPS = 4
+
+const files = [
+  "hops/hops_shears.jld",
+  "hops/hops_shears_zoom.jld",
+  "hops/spiraling_hops.jld",
+  "hops/golden_hops.jld"
+]
+
+# this function records how i made some shear coordinate example data sets in my
+# files. it's copied from my notebook, and hasn't been tested. it writes its
+# output to a file because it's very time-consuming, and that makes the output
+# worth saving. on my machine, for example,
+#
+#   hops_shear_data(GOLDEN_HOPS) 
+#
+# takes about 40 minutes to run.
+function hops_shear_data(example)
+  # set parameters
+  if (example == HOPS_SHEARS)
+    angle = atan(2/(1+sqrt(@interval(5))))
+    e_list = linspace(-0.6, 0.6, 600);
+    l_list = linspace(-0.2, 0.2, 200);
+  elseif (example == HOPS_SHEARS_ZOOM)
+    angle = atan(2/(1+sqrt(@interval(5))))
+  elseif (example == SPIRALING_HOPS)
+    angle = @interval(π/4 - 1//1000)
+    e_list = [n/500 for n in -400:400];
+    l_list = [(2n+1)/1000 for n in 0:100];
+  elseif (example == GOLDEN_HOPS)
+    angle = atan(2/(1+sqrt(@interval(5))))
+    e_list = [n/2000 for n in 300:1800];
+    l_list = [(1 + 2*n)/4000 for n in 0:300];
+  end
+  
+  # compute shear coordinates
+  half_x_cols = [[shears(Quasicrystal.cocycle(angle, QuasicrystalLocSys(-2, energy + im*loss))) for loss in l_list] for energy in e_list];
+  x_grid = hcat([vcat(reverse(map(conj, col)), col) for col in half_x_cols]...);
+  
+  # save
+  save(files[example], "e_list", e_list, "l_list", l_list, "x_grid", x_grid)
+end
+
+# this function records nice plot settings for the output of `hops_shear_data`.
+# run
+#
+#   hops_shear_plot(GOLDEN_HOPS, true)
+#
+# to make the plot in my U of T research statement.
+function hops_shear_plot(example, crop = false)
+  # turn off screen output
+  PyPlot.ioff()
+  
+  # set dimensions
+  size = 7
+  if (example == HOPS_SHEARS)
+    fig, ax = PyPlot.subplots(2, 1, figsize=(4.5, 3.5), dpi=200)
+  elseif (example == HOPS_SHEARS_ZOOM)
+    fig, ax = PyPlot.subplots(2, 1, figsize=(4.5, 3.5), dpi=200)
+  elseif (example == SPIRALING_HOPS)
+    if (crop)
+      fig, ax = PyPlot.subplots(2, 1, figsize=(4.5, 1.8), dpi=200)
+    else
+      fig, ax = PyPlot.subplots(2, 1, figsize=(4.5, 3), dpi=200)
+    end
+  elseif (example == GOLDEN_HOPS)
+    if (crop)
+      fig, ax = PyPlot.subplots(2, 1, figsize=(4.5, 3), dpi=200)
+    else
+      fig, ax = PyPlot.subplots(2, 1, figsize=(4.5, 4), dpi=200)
+    end
+  else
+    println("Unknown example")
+    return
+  end
+  
+  # load data
+  data = load(files[example])
+  e_list = data["e_list"];
+  l_list = data["l_list"];
+  x_grid = data["x_grid"];
+  
+  # plot shear coordinates
+  for k in 1:2
+    ax[k][:xaxis][:set_tick_params](labelsize=size)
+    ax[k][:yaxis][:set_tick_params](labelsize=size)
+    ax[k][:set_xlabel]("Re E", fontsize=size)
+    ax[k][:set_ylabel]("Im E", fontsize=size)
+    if crop
+      if (example == SPIRALING_HOPS)
+        phaseplot = applycycliccolourmap(map(x -> atan2(imag(x[k]), real(x[k])), x_grid[51:152,:]), cmap("C2"), cyclelength = 2pi);
+        ax[k][:imshow](phaseplot, origin="lower", extent = [e_list[1], e_list[end], -l_list[51], l_list[51]])
+      elseif (example == GOLDEN_HOPS)
+        phaseplot = applycycliccolourmap(map(x -> atan2(imag(x[k]), real(x[k])), x_grid[101:502,:]), cmap("C2"), cyclelength = 2pi);
+        ax[k][:imshow](phaseplot, origin="lower", extent = [e_list[1], e_list[end], -l_list[201], l_list[201]])
+      end
+    else
+      phaseplot = applycycliccolourmap(map(x -> atan2(imag(x[k]), real(x[k])), x_grid), cmap("C2"), cyclelength = 2pi);
+      ax[k][:imshow](phaseplot, origin="lower", extent = [e_list[1], e_list[end], -l_list[end], l_list[end]])
+    end
+  end
+  fig[:tight_layout]()
+  
+  if (example == HOPS_SHEARS)
+    PyPlot.savefig("hops/hops_shears_full.png")
+  elseif (example == HOPS_SHEARS_ZOOM)
+    PyPlot.savefig("hops/hops_shears_zoom.png")
+  elseif (example == SPIRALING_HOPS)
+    if (crop)
+      PyPlot.savefig("hops/spiraling_hops.png")
+    else
+      PyPlot.savefig("hops/spiraling_hops_full.png")
+    end
+  elseif (example == GOLDEN_HOPS)
+    if (crop)
+      PyPlot.savefig("hops/golden_hops.png")
+    else
+      PyPlot.savefig("hops/golden_hops_full.png")
+    end
+  end
+  PyPlot.close(fig)
+end
+
 function shear_plot_sweep()
   # load data
-  e_list = load("spiraling_hops.jld", "e_list");
-  l_list = load("spiraling_hops.jld", "l_list");
-  x_grid = load("spiraling_hops.jld", "x_grid");
+  data = load(files[SPIRALING_HOPS])
+  e_list = data["e_list"];
+  l_list = data["l_list"];
+  x_grid = data["x_grid"];
   
   # turn off screen output
   PyPlot.ioff()
