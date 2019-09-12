@@ -2,10 +2,15 @@ module Regular
 
 export generators
 
+using LinearAlgebra
+
+##[type cleanup] use a concrete type like Int instead of Integer for counting to
+## improve performance
+
 # the horizontal translation of the Poincaré disk that preserves the tesselation
 # with Schläfli symbol {2j, 2k}. for k, a value of nothing is treated as
 # infinity.
-function slide(j::Integer, k::Union{Integer, Void})
+function slide(j::Integer, k::Union{Integer, Nothing})
   # the hyperbolic cosine of the inscribed radius of a face, from the formula in
   # section 5 of Coxeter's article on "the trigonometry of hyperbolic
   # tesselations"
@@ -25,6 +30,6 @@ turn(j::Integer, s::Integer) = [[cis(s*π/2j), 0] [0, cis(-s*π/2j)]]
 
 # symmetry group generators for the tesselation with Schläfli symbol {2j, 2k}.
 # for k, a value of nothing is treated as infinity.
-generators(j::Integer, k::Union{Integer, Void}) = [turn(j, s) * slide(j, k) * turn(j, -s) for s in 1:j]
+generators(j::Integer, k::Union{Integer, Nothing}) = [turn(j, s) * slide(j, k) * turn(j, -s) for s in 1:j]
 
 end

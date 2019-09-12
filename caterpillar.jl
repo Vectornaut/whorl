@@ -1,16 +1,16 @@
 module Caterpillar
 
-using ValidatedNumerics, IntervalExchange
+using ValidatedNumerics, Main.IntervalExchange
 
 export CaterpillarLocSys, cocycle, abelianize, symmetric_caterpillar, almost_flat_caterpillar
 
 tilt(x::Integer, y::Integer) = ((10*x + 7*y)//149, (-7*x + 10*y)//149)
 
-type CaterpillarLocSys
+struct CaterpillarLocSys
   f_transit
 end
 
-function proj{R <: AbstractInterval, T <: Integer}(angle::R, pt::Tuple{T, T})
+function proj(angle::R, pt::Tuple{T, T}) where R <: AbstractInterval where T <: Integer
   # the rotation that lays the long diagonal of the caterpillar horizontal
   tilt = [[10, -7] [7, 10]]
   
@@ -23,7 +23,7 @@ function proj{R <: AbstractInterval, T <: Integer}(angle::R, pt::Tuple{T, T})
   (tilt_pt[1] - (tilt_up[1]/tilt_up[2])*tilt_pt[2])::R
 end
 
-function cocycle{R <: AbstractInterval}(angle::R, loc::CaterpillarLocSys)
+function cocycle(angle::R, loc::CaterpillarLocSys) where R <: AbstractInterval
   # branch points of a presentation of a genus-five surface with four
   # singularities
   branch_pts = [(0, 1), (1, 1), (2, 2), (2, 3), (3, 3), (4, 4), (5, 4), (6, 5), (7, 5), (7, 6), (8, 7), (9, 7), (10, 7)]
@@ -33,7 +33,7 @@ function cocycle{R <: AbstractInterval}(angle::R, loc::CaterpillarLocSys)
   Cocycle(breaks, loc.f_transit, f_shuffle)
 end
 
-function abelianize{R <: AbstractInterval}(angle::R, loc::CaterpillarLocSys, depth::Integer)
+function abelianize(angle::R, loc::CaterpillarLocSys, depth::Integer) where R <: AbstractInterval
   # build and evolve cocycle
   orig = cocycle(angle, loc)
   iter = power_twostep(orig, depth)

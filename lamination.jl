@@ -19,13 +19,13 @@ export
 using
   Colors,
   Compose,
-  PoincaréDisk,
-  Crawl,
+  Main.PoincaréDisk,
+  Main.Crawl,
   ValidatedNumerics,
-  IntervalExchange,
-  Caterpillar,
-  Square,
-  PunkdTorus
+  Main.IntervalExchange,
+  Main.Caterpillar,
+  Main.Square,
+  Main.PunkdTorus
 
 # === themes
 
@@ -33,7 +33,7 @@ using
 const SOLID = 0
 const HORO = 1
 
-type LaminationTheme
+struct LaminationTheme
   leafcolor  # the color of the leaves
   fillcolor  # the colors of the complementary triangles
   fillstyle  # solid or horocyclic
@@ -103,7 +103,7 @@ end
 
 # === ideal polygons
 
-type IdealPolygon
+struct IdealPolygon
   sing::Integer
   verts
 end
@@ -131,7 +131,7 @@ triangulate(j::Jump) =
 # return the complementary triangles of the resulting geodesic lamination. we
 # approximate the lamination by doubling the first return cocycle `depth` times.
 
-function triangulate{R <: AbstractInterval}(angle::R, loc::CaterpillarLocSys, depth::Integer; verbose = false)
+function triangulate(angle::R, loc::CaterpillarLocSys, depth::Integer; verbose = false) where R <: AbstractInterval
   # build and evolve cocycle
   orig = Caterpillar.cocycle(angle, loc)
   iter = power_twostep(orig, depth, verbose = verbose)
@@ -147,7 +147,7 @@ function triangulate{R <: AbstractInterval}(angle::R, loc::CaterpillarLocSys, de
   [triangulate(j) for j in widest]
 end
 
-function triangulate{R <: AbstractInterval}(angle::R, loc::PunkdTorusLocSys, depth::Integer; verbose = false)
+function triangulate(angle::R, loc::PunkdTorusLocSys, depth::Integer; verbose = false) where R <: AbstractInterval
   # set up cocycle
   orig = PunkdTorus.cocycle(angle, loc)
   iter = power_twostep(orig, depth, verbose = verbose)
@@ -194,7 +194,7 @@ orbiter(p::IdealPolygon, eps, draw, shift = eye(2); diam = [2, 3]) =
 # for the holonomy group. if a frame number is specified, render an
 # appropriately named bitmap to be used as a frame of a movie. otherwise, render
 # a PDF or SVG test frame.
-function render{R <: AbstractInterval}(
+function render(
   angle::R,
   loc,
   crawler,
@@ -202,7 +202,7 @@ function render{R <: AbstractInterval}(
   theme;
   center = nothing,
   verbose = false
-)
+) where R <: AbstractInterval
   # get complementary triangles
   triangles = triangulate(angle, loc, 4, verbose = verbose)
   
@@ -284,7 +284,13 @@ end
 # visualize the foliation of `loc` at the given angle by running the critical
 # leaves out through 2^`depth` returns and then coloring each point in the Masur
 # polygon with the singularity of the nearest critical leaf
-function candystripes{R <: AbstractInterval}(angle::R, loc::CaterpillarLocSys, depth::Integer, theme; verbose = false)
+function candystripes(
+  angle::R,
+  loc::CaterpillarLocSys,
+  depth::Integer,
+  theme;
+  verbose = false
+) where R <: AbstractInterval
   # build and evolve cocycle
   orig = Caterpillar.cocycle(angle, loc)
   iter = power_twostep(orig, depth, verbose = verbose)

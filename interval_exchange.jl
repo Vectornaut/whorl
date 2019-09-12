@@ -2,17 +2,24 @@ include("poincare_disk.jl")
 
 module IntervalExchange
 
-using ValidatedNumerics, Compose, PoincaréDisk
+using ValidatedNumerics, Printf, Compose, Main.PoincaréDisk
 
 export Cocycle, missed_connection, scancollect, twostep, power_twostep, Jump, FJump, BJump, abelianize
 
 # === exchangers
 
+##[type cleanup] with some minor changes to the "label the singularities"
+## routine in the Cocycle constructor, it should be possible to make Exchanger
+## immutable
+
+##[type cleanup] use a concrete type like Int instead of Integer for counting to
+## improve performance
+
 # an Exchanger is a piece of an interval exchange cocycle. it maps points in an
 # "in" block to points in an "out" block by translation, discarding points that
 # don't belong to the in block. it also applies a transition map to the
 # local system sections above the block.
-type Exchanger{R <: AbstractInterval}
+mutable struct Exchanger{R <: AbstractInterval}
   # the endpoints of the in and out blocks, specified using interval arithmetic.
   # the differences in_right - in_left and out_right - out_left will always be
   # equal, because the in block is mapped to the out block by translation.
@@ -41,7 +48,7 @@ type Exchanger{R <: AbstractInterval}
   # the singularity at the right endpoint
   sing
   
-  function Exchanger(
+  function Exchanger{R}(
     in_left,
     in_right,
     f_shift,
@@ -50,8 +57,8 @@ type Exchanger{R <: AbstractInterval}
     orig_in,
     orig_out,
     sing = nothing
-  )
-    new(
+  ) where R <: AbstractInterval
+    new{R}(
       in_left,            # in_left
       in_right,           # in_right
       in_left + f_shift,  # out_left
@@ -67,7 +74,7 @@ type Exchanger{R <: AbstractInterval}
 end
 
 # interval arithmetic collision exception
-type EndpointCollisionException <: Exception
+struct EndpointCollisionException <: Exception
   h::Exchanger
   k::Exchanger
 end
@@ -102,7 +109,7 @@ end
 
 # compose the exchangers h and k, returning nothing if the out block of k
 # misses the in block of h
-function pipe{R <: AbstractInterval}(h::Exchanger{R}, k::Exchanger{R})
+function pipe(h::Exchanger{R}, k::Exchanger{R}) where R <: AbstractInterval
   # if out block of k misses the in block of h, return nothing
   if missed_connection(h, k)
     return nothing
@@ -156,7 +163,7 @@ end
 
 # === interval exchange cocycles
 
-type Cocycle{R <: AbstractInterval}
+struct Cocycle{R <: AbstractInterval}
   # we're using interval arithmetic to keep track of endpoints, so the intervals
   # of the interval exchange are called blocks to avoid confusion
   blocks_by_in::Array{Exchanger{R}, 1}
@@ -166,11 +173,9 @@ end
 # if you label the blocks 1, 2, 3... from left to right, apply the interval
 # exchange, and read off the labels from left to right again, you get the list
 # f_shuffle
-function Cocycle{
-  R <: AbstractInterval, S <: Any, T <: Integer
-}(
-  in_breaks::Array{R, 1}, f_transit::Array{S, 1}, f_shuffle::Array{T, 1}
-)
+function Cocycle(
+  in_breaks::Array{R, 1}, f_transit::Array{<:Any, 1}, f_shuffle::Array{T, 1}
+) where R <: AbstractInterval where T <: Integer
   # find the lengths of the in blocks
   blocklengths = R[]
   last_b = 0
@@ -188,7 +193,7 @@ function Cocycle{
   unshift!(pad_out_breaks, 0)
   
   # invert the permutation of the blocks
-  b_shuffle = Array(T, length(f_shuffle))
+  b_shuffle = Array{T}(undef, length(f_shuffle))
   for (s, t) in enumerate(f_shuffle)
     b_shuffle[t] = s
   end
@@ -298,7 +303,7 @@ end
 # compose an interval exchange cocyle with itself, roughly doubling the number
 # of blocks (if the original interval exchange has n blocks, the new one will
 # have 2n - 1)
-function twostep{R <: AbstractInterval}(a::Cocycle{R})
+function twostep(a::Cocycle{R}) where R <: AbstractInterval
   new_blocks = scancollect(a, Exchanger{R}, thru_fn = (h, k) -> pipe(h, k))
   new_blocks_by_in = sort(new_blocks, lt = in_isless)
   new_blocks_by_out = sort(new_blocks, lt = out_isless)
@@ -321,17 +326,17 @@ end
 
 # === abelianization
 
-abstract Jump
+abstract type Jump end
 
 Base.isless(p::Jump, q::Jump) = p.gap < q.gap
 
-function jumpshear{T <: Number}(new_ln::Array{T}, old_ln::Array{T}, pivot::Array{T})
+function jumpshear(new_ln::Array{T}, old_ln::Array{T}, pivot::Array{T}) where T <: Number
   new_sc = new_ln / det([new_ln pivot])
   old_sc = old_ln / det([old_ln pivot])
   [new_sc pivot] / [old_sc pivot]
 end
 
-type FJump <: Jump
+struct FJump <: Jump
   # the jump operator
   op
   
@@ -351,7 +356,7 @@ type FJump <: Jump
   # the square of the sine distance between the left and right stable lines
   gap
   
-  function FJump{E <: Exchanger}(left::E, right::E, pivot::E)
+  function FJump(left::E, right::E, pivot::E) where E <: Exchanger
     left_stable = stable(left.f_transit)
     right_stable = stable(right.f_transit)
     pivot_stable = stable(pivot.b_transit)
@@ -369,7 +374,7 @@ type FJump <: Jump
   end
 end
 
-type BJump <: Jump
+struct BJump <: Jump
   # the jump operator
   op
   
@@ -389,7 +394,7 @@ type BJump <: Jump
   # the square of the sine distance between the left and right stable lines
   gap
   
-  function BJump{E <: Exchanger}(left::E, right::E, pivot::E)
+  function BJump(left::E, right::E, pivot::E) where E <: Exchanger
     left_stable = stable(left.b_transit)
     right_stable = stable(right.b_transit)
     pivot_stable = stable(pivot.f_transit)

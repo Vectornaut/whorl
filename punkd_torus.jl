@@ -1,10 +1,10 @@
 module PunkdTorus
 
-using Square
+using Main.Square
 
 export PunkdTorusLocSys
 
-type PunkdTorusLocSys <: SquareLocSys
+struct PunkdTorusLocSys <: SquareLocSys
   # transitions
   n_transit
   e_transit

@@ -8,7 +8,7 @@ const L_RUNNER = -1
 const R_RUNNER =  1
 const CORNER   =  2
 
-abstract CayleyCrawler
+abstract type CayleyCrawler end
 
 function findhome!(crawler::CayleyCrawler, transit, base=eye(2))
   # find our way home
@@ -61,11 +61,14 @@ function tipcollect(f::Function, crawler::CayleyCrawler; prune = false)
   end
 end
 
-type FreeCrawler <: CayleyCrawler
+##[type cleanup] use a concrete type like Int instead of Integer for counting to
+## improve performance
+
+mutable struct FreeCrawler <: CayleyCrawler
   # the index of the generator represented by this edge of the Cayley graph,
   # oriented toward the root of the spanning tree (relevant in all modes but
   # root)
-  down::Union{Integer, Void}
+  down::Union{Integer, Nothing}
   
   # growth parameters
   mode::Integer   # specifies branching behavior
@@ -115,15 +118,15 @@ type FreeCrawler <: CayleyCrawler
   end
 end
 
-type TileCrawler <: CayleyCrawler
+mutable struct TileCrawler <: CayleyCrawler
   # the index of the generator represented by this edge of the Cayley graph,
   # oriented toward the root of the spanning tree (relevant in all modes but
   # root)
-  down::Union{Integer, Void}
+  down::Union{Integer, Nothing}
   
   # growth parameters
   mode::Integer               # specifies branching behavior
-  range::Union{Integer, Void} # how far to run (relevant in the runner modes)
+  range::Union{Integer, Nothing} # how far to run (relevant in the runner modes)
   ascent::Integer             # how high to climb
   
   # the next edges out in the spanning tree

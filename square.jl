@@ -1,12 +1,12 @@
 module Square
 
-using ValidatedNumerics, IntervalExchange
-
 export SquareLocSys, GenSquareLocSys, cocycle, appx_abelianize
 
-abstract SquareLocSys
+using ValidatedNumerics, Main.IntervalExchange
 
-type GenSquareLocSys <: SquareLocSys
+abstract type SquareLocSys end
+
+struct GenSquareLocSys <: SquareLocSys
   n_transit
   e_transit
   s_transit
@@ -18,7 +18,7 @@ type GenSquareLocSys <: SquareLocSys
   )
 end
 
-function cocycle{R <: AbstractInterval}(angle::R, loc::SquareLocSys)
+function cocycle(angle::R, loc::SquareLocSys) where R <: AbstractInterval
   if (angle < @interval(pi)/2)
     off_perp = angle - @interval(pi)/4
     f_transit = [loc.n_transit, loc.e_transit]
@@ -35,7 +35,7 @@ function cocycle{R <: AbstractInterval}(angle::R, loc::SquareLocSys)
   Cocycle([1 + tan(off_perp), 2], f_transit, [2, 1])
 end
 
-function abelianize{R <: AbstractInterval}(angle::R, loc::SquareLocSys, depth::Integer)
+function abelianize(angle::R, loc::SquareLocSys, depth::Integer) where R <: AbstractInterval
   # build and evolve cocycle
   orig = cocycle(angle, loc)
   iter = power_twostep(orig, depth)

@@ -10,21 +10,22 @@ include("lamination.jl")
 module Examples
 
 using
+  Printf,
   Gadfly,
   DataFrames,
   Colors,
   Compose,
-  PoincaréDisk,
-  Crawl,
+  Main.PoincaréDisk,
+  Main.Crawl,
   ValidatedNumerics,
-  IntervalExchange,
-  Caterpillar,
-  Square,
-  PunkdTorus,
-  Quasicrystal,
-  Lamination
+  Main.IntervalExchange,
+  Main.Caterpillar,
+  Main.Square,
+  Main.PunkdTorus,
+  Main.Quasicrystal,
+  Main.Lamination
 
-import Regular
+import Main.Regular
 
 # === basic drawing
 
@@ -130,12 +131,12 @@ function shears(orig)
 end
 
 # find the Masur polygon of a deflated genus-2 surface
-function render_deflation{R <: AbstractInterval}(
+function render_deflation(
   angle::R,
   g;
   theme = tacos,
   half = false
-)
+) where R <: AbstractInterval
   # build cocycle and compute shears along first-return paths
   loc = almost_flat_caterpillar(g)
   orig = Caterpillar.cocycle(angle, loc)
@@ -832,7 +833,7 @@ function render_flip(crawler::CayleyCrawler, orbiters, name, foliate = false, sv
     fol_gp = compose(context(), fol..., linewidth(0.25mm))
     picture = compose(context(), bdry, (lam_gps..., fol_gp), disk)
   else
-    picture = compose(context(), bdry, (lam_gps...), disk)
+    picture = compose(context(), bdry, (lam_gps...,), disk)
   end
   
   # render

@@ -1,10 +1,10 @@
 module Quasicrystal
 
-using Square
+using Main.Square
 
 export QuasicrystalLocSys
 
-type QuasicrystalLocSys <: SquareLocSys
+struct QuasicrystalLocSys <: SquareLocSys
   n_transit
   e_transit
   s_transit

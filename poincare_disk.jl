@@ -15,14 +15,16 @@ export
 
 # === möbius transformations
 
+##[type cleanup] switch to fixed arrays!
+
 # apply a möbius transformation, given as an operator on C^2, to a point on the
 # complex plane
-möbius_map{T <: Number}(m::Matrix{T}, z) =
+möbius_map(m::Matrix{T}, z) where T <: Number =
   (m[1,1]*z + m[1,2]) / (m[2,1]*z + m[2,2])
 
 # find the derivative of a möbius transformation, given as an operator on C^2,
 # at a point on the complex plane
-function möbius_deriv{T <: Number}(m::Matrix{T}, z)
+function möbius_deriv(m::Matrix{T}, z) where T <: Number
   u = m[2,1]*z + m[2, 2]
   (m[1,1]*m[2,2] - m[1,2]*m[2,1]) / (u * u)
 end
@@ -41,7 +43,7 @@ pts_to_pts(a0, b0, c0, a1, b1, c1) =
   std_to_pts(a1, b1, c1) * inv(std_to_pts(a0, b0, c0))
 
 # find the stable line of an element of GL(2,C)
-function stable{T <: Number}(m::Matrix{T})
+function stable(m::Matrix{T}) where T <: Number
   # when you pass a matrix of type Hermitian to eigfact!, it calls LAPACK's
   # sygvd function, which puts the eigenvalues in ascending order. that means
   # the first eigenvector is the one that shrinks the most.
@@ -52,7 +54,7 @@ end
 # === points, geodesics, and horocycles
 
 # project a line in affine space to the complex plane
-planeproj{T <: Number}(v::Vector{T}) = v[1] / v[2]
+planeproj(v::Vector{T}) where T <: Number = v[1] / v[2]
 
 # a version of reim for use in Compose paths
 reim_measure(z::Number) = (real(z)*cx, imag(z)*cy)
