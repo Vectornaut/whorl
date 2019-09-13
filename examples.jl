@@ -19,6 +19,7 @@ using
   Compose,
   Main.PoincaréDisk,
   Main.Crawl,
+  LinearAlgebra,
   ValidatedNumerics,
   Main.IntervalExchange,
   Main.Caterpillar,
@@ -210,7 +211,7 @@ function deflation_movie(; ascent = 2, eps = 1e-3, theme = tacos, testframe = tr
     # find Dehn-twisted holonomies
     transit = Regular.generators(4, 4)
     frame = [[1, 1] [-1, 1]] * [[im, 0] [0, -im]]
-    twist = frame * diagm([1/exp(u/2), exp(u/2)]) * inv(frame)
+    twist = frame * Diagonal([1/exp(u/2), exp(u/2)]) * inv(frame)
     for s in 1:3
       transit[s] = twist*transit[s]
     end
@@ -733,8 +734,8 @@ function torus_sym(h)
   h_frame = [[1im, 1] [-1im, 1]]
   l = 2atanh(sech(h/2))
   return Array[
-    l_frame * diagm([exp(-l/2), exp(l/2)]) * inv(l_frame),
-    h_frame * diagm([exp(-h/2), exp(h/2)]) * inv(h_frame)
+    l_frame * Diagonal([exp(-l/2), exp(l/2)]) * inv(l_frame),
+    h_frame * Diagonal([exp(-h/2), exp(h/2)]) * inv(h_frame)
   ]
 end
 

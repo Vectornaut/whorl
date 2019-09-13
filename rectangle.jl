@@ -73,16 +73,16 @@ function appx_abelianize{R <: AbstractInterval}(tilt_sgn, loc::RectangleLocSys{R
   
   # approximate the east transition map of the abelianized local system
   if tilt_sgn > 0
-    e_transit_ab = diagm([e_reframed[1,1], 1/e_reframed[1,1]])
+    e_transit_ab = Diagonal([e_reframed[1,1], 1/e_reframed[1,1]])
   else
-    e_transit_ab = diagm([1/e_reframed[2,2], e_reframed[2,2]])
+    e_transit_ab = Diagonal([1/e_reframed[2,2], e_reframed[2,2]])
   end
   
   # return
   RectangleLocSys{R}(
     loc.width,
     loc.height,
-    diagm([λ, 1/λ]),
+    Diagonal([λ, 1/λ]),
     e_transit_ab
   )
 end

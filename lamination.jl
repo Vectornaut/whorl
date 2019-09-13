@@ -21,6 +21,7 @@ using
   Compose,
   Main.PoincaréDisk,
   Main.Crawl,
+  LinearAlgebra,
   ValidatedNumerics,
   Main.IntervalExchange,
   Main.Caterpillar,
@@ -175,7 +176,7 @@ end
 # given an ideal polygon, return the function that takes a möbius transformation
 # m, applies it to the polygon, and draws the result with the given drawing
 # function
-orbiter(p::IdealPolygon, eps, draw, shift = eye(2); diam = [2, 3]) =
+orbiter(p::IdealPolygon, eps, draw, shift = I; diam = [2, 3]) =
   m -> begin
     verts = [möbius_map(shift*m, v) for v in p.verts]
     if eps == nothing || abs2(verts[diam[1]] - verts[diam[2]]) > eps*eps
@@ -208,7 +209,7 @@ function render(
   
   # do centering, if requested
   if center == nothing
-    shift = eye(2)
+    shift = I
   else
     shift = pts_to_pts(
       triangles[center].verts...,

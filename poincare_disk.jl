@@ -1,7 +1,5 @@
 module PoincaréDisk
 
-using Compose
-
 export
   möbius_map,
   pts_to_pts,
@@ -13,18 +11,20 @@ export
   horotriangle,
   geodesic_orbit
 
+using LinearAlgebra, Compose
+
 # === möbius transformations
 
 ##[type cleanup] switch to fixed arrays!
 
 # apply a möbius transformation, given as an operator on C^2, to a point on the
 # complex plane
-möbius_map(m::Matrix{T}, z) where T <: Number =
+möbius_map(m::Union{AbstractMatrix, UniformScaling}, z) =
   (m[1,1]*z + m[1,2]) / (m[2,1]*z + m[2,2])
 
 # find the derivative of a möbius transformation, given as an operator on C^2,
 # at a point on the complex plane
-function möbius_deriv(m::Matrix{T}, z) where T <: Number
+function möbius_deriv(m::Union{AbstractMatrix, UniformScaling}, z)
   u = m[2,1]*z + m[2, 2]
   (m[1,1]*m[2,2] - m[1,2]*m[2,1]) / (u * u)
 end
@@ -43,12 +43,11 @@ pts_to_pts(a0, b0, c0, a1, b1, c1) =
   std_to_pts(a1, b1, c1) * inv(std_to_pts(a0, b0, c0))
 
 # find the stable line of an element of GL(2,C)
-function stable(m::Matrix{T}) where T <: Number
-  # when you pass a matrix of type Hermitian to eigfact!, it calls LAPACK's
-  # sygvd function, which puts the eigenvalues in ascending order. that means
-  # the first eigenvector is the one that shrinks the most.
-  ##eigvecs(Hermitian(m' * m))[:,1]
-  eig(Hermitian(m' * m))[2][:,1] # eigvecs for Hermitian matrices seems to be broken now...
+function stable(m::Union{AbstractMatrix, UniformScaling})
+  # by default, `eigen` sorts the eigenvalues lexicographically by their real
+  # and imaginary parts. that means the first eigenvector of a Hermitian matrix
+  # is the one that shrinks the most.
+  eigen(Hermitian(m' * m)).vectors[:,1]
 end
 
 # === points, geodesics, and horocycles

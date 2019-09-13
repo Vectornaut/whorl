@@ -22,7 +22,7 @@ function slide(j::Integer, k::Union{Integer, Nothing})
   # the inscribed radius of a face happens to be half the translation length of
   # the slide that sends the right edge of the central face to the left edge
   frame = [[1, 1] [-1, 1]]
-  frame * diagm([1/exp_r, exp_r]) * inv(frame)
+  frame * Diagonal([1/exp_r, exp_r]) * inv(frame)
 end
 
 # a turn of s*π/j around the center of the Poincaré disk

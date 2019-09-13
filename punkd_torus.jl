@@ -1,8 +1,8 @@
 module PunkdTorus
 
-using Main.Square
-
 export PunkdTorusLocSys
+
+using LinearAlgebra, Main.Square
 
 struct PunkdTorusLocSys <: SquareLocSys
   # transitions

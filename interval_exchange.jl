@@ -2,7 +2,7 @@ include("poincare_disk.jl")
 
 module IntervalExchange
 
-using ValidatedNumerics, Printf, Compose, Main.PoincaréDisk
+using LinearAlgebra, ValidatedNumerics, Printf, Compose, Main.PoincaréDisk
 
 export Cocycle, missed_connection, scancollect, twostep, power_twostep, Jump, FJump, BJump, abelianize
 
@@ -186,11 +186,11 @@ function Cocycle(
   
   # add the break at zero
   pad_in_breaks = copy(in_breaks)
-  unshift!(pad_in_breaks, 0)
+  pushfirst!(pad_in_breaks, 0)
   
   # find the breaks between the out blocks
   pad_out_breaks = cumsum([blocklengths[s] for s in f_shuffle])
-  unshift!(pad_out_breaks, 0)
+  pushfirst!(pad_out_breaks, 0)
   
   # invert the permutation of the blocks
   b_shuffle = Array{T}(undef, length(f_shuffle))

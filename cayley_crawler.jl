@@ -2,6 +2,8 @@ module Crawl
 
 export findhome!, mapcollect, altcollect, tipcollect, CayleyCrawler, FreeCrawler, TileCrawler
 
+using LinearAlgebra
+
 const ROOT     =  3
 const CLIMBER  =  0
 const L_RUNNER = -1
@@ -10,7 +12,7 @@ const CORNER   =  2
 
 abstract type CayleyCrawler end
 
-function findhome!(crawler::CayleyCrawler, transit, base=eye(2))
+function findhome!(crawler::CayleyCrawler, transit, base = I)
   # find our way home
   if crawler.mode == ROOT
     crawler.home = base
