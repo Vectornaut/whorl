@@ -14,8 +14,6 @@ using
   Gadfly,
   DataFrames,
   Colors,
-  Cairo,
-  Fontconfig,
   Compose,
   Main.PoincaréDisk,
   Main.Crawl,
@@ -28,7 +26,7 @@ using
   Main.Quasicrystal,
   Main.Lamination
 
-import Main.Regular
+import Cairo, Fontconfig, Main.Regular
 
 # === basic drawing
 
