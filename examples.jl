@@ -440,9 +440,9 @@ function all_products(length, transit)
 end
 
 # a dot at the most contracted eigenline of m
-function eig_dot(m, radius)
-  vals, vecs = eig(m)
-  x, y = reim(planeproj(vecs[:,indmin(map(abs, vals))]))
+function eigen_dot(m, radius)
+  m_eigen = eigen(m)
+  x, y = reim(planeproj(m_eigen.vectors[:,argmin(map(abs, m_eigen.values))]))
   box = context(x - radius, y - radius, 2radius, 2radius)
   compose(box, Compose.circle())
 end
@@ -463,7 +463,7 @@ function elem_ex()
   transit = elem_generators([cis(2*pi*k/6) for k in 0:4], sqrt(3))
   
   # draw limit set
-  limit_set = [eig_dot(m, 0.002) for m in all_products(5, transit)]
+  limit_set = [eigen_dot(m, 0.002) for m in all_products(5, transit)]
   
   # build and evolve cocycle
   in_lengths = [sin((@interval(k) - 1//5) * @interval(pi)/length(transit)) for k in 1:length(transit)]
