@@ -272,11 +272,6 @@ function bridges_poster()
   draw(SVG("pre-poster.svg", 16inch, 24inch), poster)
 end
 
-# `range` doesn't work with Interval objects, so here's a slapdash replacement
-function grid(start, fin, res::Integer)
-  map(u -> (1-u)*start + u*fin, [@interval(t//(res-1)) for t in 0:res-1])
-end
-
 # compute shear parameters of a family of cocycles over a range of angles, with
 # the given resolution. the argument `cyc` should be a function that takes an
 # angle, of type AbstractInterval, and returns a cocycle. the range of angles
@@ -284,7 +279,7 @@ end
 # are only accurate to about one part in 114, making it unlikely that we'll get
 # within machine precision of a saddle connection at any reasonable resolution.
 function shear_data(cyc, res::Integer)
-  angles = grid(@interval(358//114), @interval(180//114), res)
+  angles = range(@interval(358//114), stop = @interval(180//114), length = res)
   angle_col = []
   block_col = []
   real_shear_col = []
