@@ -14,6 +14,8 @@ using
   Gadfly,
   DataFrames,
   Colors,
+  Cairo,
+  Fontconfig,
   Compose,
   Main.PoincaréDisk,
   Main.Crawl,
