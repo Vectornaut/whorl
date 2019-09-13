@@ -302,7 +302,7 @@ function shear_data(cyc, res::Integer)
         end
         
         x = shears(cyc(angles[i]))
-        append!(angle_col, collect(repeated(mid(angles[i]), length(x))))
+        append!(angle_col, fill(mid(angles[i]), length(x)))
         append!(block_col, collect(1:length(x)))
         append!(real_shear_col, map(real, x))
         append!(imag_shear_col, map(imag, x))
@@ -335,12 +335,12 @@ function shear_plot(data)
   # themes
   real_theme = Theme(
     default_color = tacos.fillcolor[1],
-    default_point_size = 0.5mm,
+    point_size = 0.5mm,
     highlight_width = 0mm,
   )
   imag_theme = Theme(
     default_color = tacos.fillcolor[4],
-    default_point_size = 0.5mm,
+    point_size = 0.5mm,
     highlight_width = 0mm,
   )
   
@@ -365,7 +365,7 @@ traceless(h::Number, x::Number, y::Number) = [h x; y -h]
 expconj(t) =
   tup -> begin
     g, a = tup
-    expm(t*a)*g*expm(-t*a)
+    exp(t*a)*g*exp(-t*a)
   end
 
 function shear_ex(cyc, transit, perturbation; highres = false)
