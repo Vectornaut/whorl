@@ -172,7 +172,7 @@ function render_deflation(
     [-runs[t,:] for t in reverse(f_shuffle[2:end])]
   ]
   vtc = map(p -> tuple(p...), cumsum(runsaround))
-  unshift!(vtc, (0, 0))
+  pushfirst!(vtc, (0, 0))
   
   # compute dimensions
   width = mid(orig.blocks_by_in[end].in_right)
@@ -272,7 +272,7 @@ function bridges_poster()
   draw(SVG("pre-poster.svg", 16inch, 24inch), poster)
 end
 
-# linspace doesn't work with Interval objects, so here's a slapdash replacement
+# `range` doesn't work with Interval objects, so here's a slapdash replacement
 function grid(start, fin, res::Integer)
   map(u -> (1-u)*start + u*fin, [@interval(t//(res-1)) for t in 0:res-1])
 end
@@ -538,9 +538,9 @@ function square_ab_data(level_curves, cyc_family, window = false, neg = false)
           step /= 2
           t -= step
         else
-          unshift!(level_col, level)
-          unshift!(x1_col, x[1])
-          unshift!(x2_col, x[2])
+          pushfirst!(level_col, level)
+          pushfirst!(x1_col, x[1])
+          pushfirst!(x2_col, x[2])
           if x[1] < 1.05*window[1] || 1.05*window[2] < x[1] || x[2] < 1.05*window[3]
             break
           else
@@ -576,14 +576,14 @@ function square_ab_plot(data, angle, window, levelname)
     ),
     Guide.xlabel("log (<i>A</i><sub>ab</sub><sup>+</sup>)<sub>1</sub>"),
     Guide.ylabel("log (<i>A</i><sub>ab</sub><sup>+</sup>)<sub>2</sub>"),
-    Guide.colorkey(levelname)
+    Guide.colorkey(title = levelname)
   )
 end
 
 function punkd_torus_plot(; angle = @interval(3//7), svg = false)
   level_curves = Any[
-    [(exp(s), t) for t in linspace(-6.2, 6.2, 64)]
-    for s in linspace(-2, 2, 30)
+    [(exp(s), t) for t in range(-6.2, stop = 6.2, length = 64)]
+    for s in range(-2, stop = 2, length = 30)
   ]
   fam = p -> begin
     loc = PunkdTorusLocSys(p[1], p[2])
@@ -596,7 +596,7 @@ function punkd_torus_plot(; angle = @interval(3//7), svg = false)
 end
 
 function quasicrystal_plot(; angle = @interval(3//7), svg = false)
-  level_curves = vcat(linspace(0.4, 4.4, 21), linspace(-0.4, -1.4, 6))
+  level_curves = vcat(range(0.4, stop = 4.4, length = 21), range(-0.4, stop = -1.4, length = 6))
   fam = p -> begin
     loc = QuasicrystalLocSys(p[1], p[2])
     Square.cocycle(angle, loc)
@@ -847,7 +847,7 @@ end
 
 function various_shears()
   crawler = FreeCrawler(2, 5)
-  h = linspace(2, 4, 5)
+  h = range(2, stop = 4, length = 5)
   for i in 1:length(h)
     # set up holonomy group crawler
     left, down = torus_sym(h[i])
