@@ -374,7 +374,7 @@ function shear_ex(cyc, transit, perturbation; highres = false)
   cyc_no = cyc(transit)
   data_no = shear_data(cyc_no, highres ? 300 : 18)
   p_no = shear_plot(data_no)
-  page_height = length(cyc_no(4@interval(π)/4).blocks_by_in)*3cm + 1cm
+  page_height = data_no.block[end]*3cm + 1cm # data_no.block[end] gives the number of blocks in the cocycle
   draw(PDF("no-perturbation.pdf", 30cm, page_height), p_no)
   println()
   
