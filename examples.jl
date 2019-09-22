@@ -16,6 +16,7 @@ using
   Colors,
   Compose,
   Main.PoincaréDisk,
+  Main.ProjectivePlane,
   Main.Crawl,
   LinearAlgebra,
   ValidatedNumerics,
@@ -105,7 +106,7 @@ end
 # print an "almost flat caterpillar" cocycle and its abelianization
 function abelianization_ex()
   # build and evolve cocycle
-  loc = almost_flat_caterpillar(Regular.generators(4, 4))
+  loc = almost_flat_caterpillar(Regular.generators(4, 4), 1) ## the 1 specifies cocyle group SL(2,C)
   orig = Caterpillar.cocycle(@interval(3π/4 + 1//11), loc)
   iter = power_twostep(orig, 4)
   
@@ -139,7 +140,7 @@ function render_deflation(
   half = false
 ) where R <: AbstractInterval
   # build cocycle and compute shears along first-return paths
-  loc = almost_flat_caterpillar(g)
+  loc = almost_flat_caterpillar(g, 1)
   orig = Caterpillar.cocycle(angle, loc)
   x = shears(orig)
   
@@ -218,7 +219,7 @@ function deflation_movie(; ascent = 2, eps = 1e-3, theme = tacos, testframe = tr
     findhome!(crawler, [transit; [inv(t) for t in transit]])
     
     # draw frame
-    lam_pic = @time(Lamination.render(angle, almost_flat_caterpillar(transit), crawler, eps, theme, center = center, verbose = verbose))
+    lam_pic = @time(Lamination.render(angle, almost_flat_caterpillar(transit, 1), crawler, eps, theme, center = center, verbose = verbose))
     defl_pic = @time(render_deflation(angle, transit, theme = theme))
     frame = compose(context(),
       compose(context(0.05, 0.025, 0.9, 0.45), lam_pic),
@@ -260,7 +261,7 @@ function bridges_poster()
   findhome!(crawler, [transit; [inv(t) for t in transit]])
   
   # draw poster
-  lam_pic = @time(Lamination.render(angle, almost_flat_caterpillar(transit), crawler, eps, tacos, verbose = true))
+  lam_pic = @time(Lamination.render(angle, almost_flat_caterpillar(transit, 1), crawler, eps, tacos, verbose = true))
   defl_pic = @time(render_deflation(angle, transit, theme = tacos, half = true))
   full_w = 558.8;  full_h = 838.2
   lam_x = 82.550;  lam_y = 352.350; lam_side = 393.700
@@ -403,7 +404,7 @@ end
 
 function caterpillar_shear_ex(; highres = false)
   cyc = transit -> begin
-    loc = almost_flat_caterpillar(transit)
+    loc = almost_flat_caterpillar(transit, 1)
     angle -> Caterpillar.cocycle(angle, loc)
   end
   perturbation = Matrix[
@@ -435,16 +436,17 @@ function all_products(length, transit)
 end
 
 # a dot at the most contracted eigenline of m
+## hard-coded for rank 1 local systems
 function eigen_dot(m, radius)
   m_eigen = eigen(m)
-  x, y = reim(planeproj(m_eigen.vectors[:,argmin(map(abs, m_eigen.values))]))
+  x, y = reim(PoincaréDisk.planeproj(m_eigen.vectors[:,argmin(map(abs, m_eigen.values))]))
   box = context(x - radius, y - radius, 2radius, 2radius)
   compose(box, Compose.circle())
 end
 
 # a dot at the most contracted line of m
 function stable_dot(m, radius, color = nothing)
-  x, y = reim(planeproj(stable(m)))
+  x, y = reim(PoincaréDisk.planeproj(stable(m)))
   box = context(x - radius, y - radius, 2radius, 2radius)
   if color == nothing
     compose(box, Compose.circle())
@@ -612,14 +614,20 @@ function easing(t)
   (1 + (x / (1+1/26))) / 2
 end
 
-function movie(; shape = CaterpillarLocSys, ascent = 2, eps = 1e-3, theme = tacos, testframe = true, center = nothing, svg = false, verbose = true)
+function movie(; shape = CaterpillarLocSys, rank = 1, ascent = 2, depth = 4, eps = 1e-3, theme = tacos, testframe = true, center = nothing, svg = false, verbose = true)
   if shape == CaterpillarLocSys
     # enumerate symmetry group elements
-    transit = Regular.generators(4, 4)
+    if rank == 1
+      transit = Regular.generators(4, 4)
+    elseif rank == 2
+      transit = veronese_emb.(Regular.generators(4, 4, true))
+    else
+      error("No example of rank ", rank)
+    end
     dbl_transit = [transit; [inv(t) for t in transit]]
     
     # set up local system
-    loc = almost_flat_caterpillar(transit);
+    loc = almost_flat_caterpillar(transit, rank);
     
     # set up crawler
     crawler = TileCrawler(4, 4, ascent)
@@ -646,7 +654,7 @@ function movie(; shape = CaterpillarLocSys, ascent = 2, eps = 1e-3, theme = taco
   # render frames
   if testframe
     println("Test frame")
-    frame = @time(Lamination.render(test_angle, loc, crawler, eps, theme, center = center, verbose = verbose))
+    frame = @time(Lamination.render(test_angle, loc, depth, crawler, eps, theme, center = center, verbose = verbose))
     if svg
       draw(SVG("triangle_test.svg", 7cm, 7cm), frame)
     else
@@ -667,6 +675,7 @@ end
 
 # draw some lifts of the geodesic around the latitude of a punctured torus. note
 # that you can't hit all the lifts just by increasing the ascent of the crawler.
+## hard-coded for rank 1 local system
 function latitude_geodesic(; eps = 1e-3, theme = shell, svg = false)
   # set up local system
   loc = PunkdTorusLocSys(2, 1/3)
@@ -681,7 +690,7 @@ function latitude_geodesic(; eps = 1e-3, theme = shell, svg = false)
   
   # draw geodesic lifts
   stable_lines = [stable(loc.e_transit), stable(loc.w_transit)]
-  base = IdealPolygon(1, [planeproj(v) for v in stable_lines])
+  base = IdealPolygon{1}(1, [PoincaréDisk.planeproj(v) for v in stable_lines])
   lifts = mapcollect(orbiter(base, eps, polygon_penciller(theme), diam = [1, 2]), crawler)
   lift_gp = compose(context(), lifts..., stroke(theme.leafcolor), linewidth(0.1mm), fill(nothing))
   push!(layers, lift_gp)
@@ -770,19 +779,19 @@ function flip_orbiters(n, h, down)
     m -> begin
       shift_x_start = möbius_map(m, x_start)
       shift_x_end = möbius_map(m, x_end)
-      compose(context(), ideal_edges(shift_x_start, shift_x_end))
+      compose(context(), ideal_edges([shift_x_start, shift_x_end]))
     end,
     # y edge
     m -> begin
       shift_y_start = möbius_map(m, y_start)
       shift_y_end = möbius_map(m, y_end)
-      compose(context(), ideal_edges(shift_y_start, shift_y_end))
+      compose(context(), ideal_edges([shift_y_start, shift_y_end]))
     end,
     # z edge
     m -> begin
       shift_z_start = möbius_map(m, z_start)
       shift_z_end = möbius_map(m, z_end)
-      compose(context(), ideal_edges(shift_z_start, shift_z_end))
+      compose(context(), ideal_edges([shift_z_start, shift_z_end]))
     end,
     m -> begin
       shift_q = [möbius_map(m, u) for u in q]

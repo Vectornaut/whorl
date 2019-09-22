@@ -1,4 +1,5 @@
 include("poincare_disk.jl")
+include("projective_plane.jl")
 
 module IntervalExchange
 
@@ -19,7 +20,7 @@ export Cocycle, missed_connection, scancollect, twostep, power_twostep, Jump, FJ
 # "in" block to points in an "out" block by translation, discarding points that
 # don't belong to the in block. it also applies a transition map to the
 # local system sections above the block.
-mutable struct Exchanger{R <: AbstractInterval}
+mutable struct Exchanger{R <: AbstractInterval, n}
   # the endpoints of the in and out blocks, specified using interval arithmetic.
   # the differences in_right - in_left and out_right - out_left will always be
   # equal, because the in block is mapped to the out block by translation.
@@ -48,7 +49,7 @@ mutable struct Exchanger{R <: AbstractInterval}
   # the singularity at the right endpoint
   sing
   
-  function Exchanger{R}(
+  function Exchanger{R, n}(
     in_left,
     in_right,
     f_shift,
@@ -57,8 +58,8 @@ mutable struct Exchanger{R <: AbstractInterval}
     orig_in,
     orig_out,
     sing = nothing
-  ) where R <: AbstractInterval
-    new{R}(
+  ) where R <: AbstractInterval where n
+    new{R, n}(
       in_left,            # in_left
       in_right,           # in_right
       in_left + f_shift,  # out_left
@@ -109,7 +110,7 @@ end
 
 # compose the exchangers h and k, returning nothing if the out block of k
 # misses the in block of h
-function pipe(h::Exchanger{R}, k::Exchanger{R}) where R <: AbstractInterval
+function pipe(h::Exchanger{R, n}, k::Exchanger{R, n}) where R <: AbstractInterval where n
   # if out block of k misses the in block of h, return nothing
   if missed_connection(h, k)
     return nothing
@@ -141,7 +142,7 @@ function pipe(h::Exchanger{R}, k::Exchanger{R}) where R <: AbstractInterval
     new_sing = k.sing
   end
   
-  Exchanger{R}(
+  Exchanger{R, n}(
     new_left,
     new_right,
     h.f_shift + k.f_shift,
@@ -163,19 +164,19 @@ end
 
 # === interval exchange cocycles
 
-struct Cocycle{R <: AbstractInterval}
+struct Cocycle{R <: AbstractInterval, n}
   # we're using interval arithmetic to keep track of endpoints, so the intervals
   # of the interval exchange are called blocks to avoid confusion
-  blocks_by_in::Array{Exchanger{R}, 1}
-  blocks_by_out::Array{Exchanger{R}, 1}
+  blocks_by_in::Array{Exchanger{R, n}, 1}
+  blocks_by_out::Array{Exchanger{R, n}, 1}
 end
 
 # if you label the blocks 1, 2, 3... from left to right, apply the interval
 # exchange, and read off the labels from left to right again, you get the list
 # f_shuffle
-function Cocycle(
+function Cocycle{R, n}(
   in_breaks::Array{R, 1}, f_transit::Array{<:Any, 1}, f_shuffle::Array{T, 1}
-) where R <: AbstractInterval where T <: Integer
+) where R <: AbstractInterval where n where T <: Integer
   # find the lengths of the in blocks
   blocklengths = R[]
   last_b = 0
@@ -199,11 +200,11 @@ function Cocycle(
   end
   
   # build the interval exchange, block by block
-  blocks_by_in = Exchanger{R}[]
+  blocks_by_in = Exchanger{R, n}[]
   for (t, s) in enumerate(b_shuffle)
     push!(
       blocks_by_in,
-      Exchanger{R}(
+      Exchanger{R, n}(
         pad_in_breaks[t],
         pad_in_breaks[t+1],
         pad_out_breaks[s] - pad_in_breaks[t],
@@ -253,7 +254,7 @@ function Cocycle(
     end
   end
   
-  Cocycle(blocks_by_in, blocks_by_out)
+  Cocycle{R, n}(blocks_by_in, blocks_by_out)
 end
 
 # scan through the in and out blocks of an interval exchange from left to right,
@@ -303,11 +304,11 @@ end
 # compose an interval exchange cocyle with itself, roughly doubling the number
 # of blocks (if the original interval exchange has n blocks, the new one will
 # have 2n - 1)
-function twostep(a::Cocycle{R}) where R <: AbstractInterval
-  new_blocks = scancollect(a, Exchanger{R}, thru_fn = (h, k) -> pipe(h, k))
+function twostep(a::Cocycle{R, n}) where R <: AbstractInterval where n
+  new_blocks = scancollect(a, Exchanger{R, n}, thru_fn = (h, k) -> pipe(h, k))
   new_blocks_by_in = sort(new_blocks, lt = in_isless)
   new_blocks_by_out = sort(new_blocks, lt = out_isless)
-  Cocycle(new_blocks_by_in, new_blocks_by_out)
+  Cocycle{R, n}(new_blocks_by_in, new_blocks_by_out)
 end
 
 function power_twostep(a::Cocycle, depth::Integer; verbose = false)
@@ -326,7 +327,7 @@ end
 
 # === abelianization
 
-abstract type Jump end
+abstract type Jump{n} end
 
 Base.isless(p::Jump, q::Jump) = p.gap < q.gap
 
@@ -336,7 +337,7 @@ function jumpshear(new_ln::Array{T}, old_ln::Array{T}, pivot::Array{T}) where T 
   [new_sc pivot] / [old_sc pivot]
 end
 
-struct FJump <: Jump
+struct FJump{n} <: Jump{n}
   # the jump operator
   op
   
@@ -356,11 +357,11 @@ struct FJump <: Jump
   # the square of the sine distance between the left and right stable lines
   gap
   
-  function FJump(left::E, right::E, pivot::E) where E <: Exchanger
+  function FJump{1}(left::E, right::E, pivot::E) where E <: Exchanger
     left_stable = stable(left.f_transit)
     right_stable = stable(right.f_transit)
     pivot_stable = stable(pivot.b_transit)
-    new(
+    new{1}(
       jumpshear(left_stable, right_stable, pivot_stable), # op
       left.sing,                                          # sing
       left.orig_in,                                       # left
@@ -372,9 +373,26 @@ struct FJump <: Jump
       1 - abs(dot(left_stable, right_stable))             # gap
     )
   end
+  
+  function FJump{2}(left::E, right::E, pivot::E) where E <: Exchanger
+    left_stable = stable(left.f_transit)
+    right_stable = stable(right.f_transit)
+    pivot_stable = stable(pivot.b_transit)
+    new{2}(
+      0, ## just leave it out for now         # op
+      left.sing,                              # sing
+      left.orig_in,                           # left
+      right.orig_in,                          # right
+      pivot.orig_out,                         # pivot
+      left_stable,                            # left_stable
+      right_stable,                           # right_stable
+      pivot_stable,                           # pivot_stable
+      1 - abs(dot(left_stable, right_stable)) # gap
+    )
+  end
 end
 
-struct BJump <: Jump
+struct BJump{n} <: Jump{n}
   # the jump operator
   op
   
@@ -394,11 +412,11 @@ struct BJump <: Jump
   # the square of the sine distance between the left and right stable lines
   gap
   
-  function BJump(left::E, right::E, pivot::E) where E <: Exchanger
+  function BJump{1}(left::E, right::E, pivot::E) where E <: Exchanger
     left_stable = stable(left.b_transit)
     right_stable = stable(right.b_transit)
     pivot_stable = stable(pivot.f_transit)
-    new(
+    new{1}(
       jumpshear(left_stable, right_stable, pivot_stable), # op
       left.sing,                                          # sing
       left.orig_out,                                      # left
@@ -410,13 +428,30 @@ struct BJump <: Jump
       1 - abs(dot(left_stable, right_stable))             # gap
     )
   end
+  
+  function BJump{2}(left::E, right::E, pivot::E) where E <: Exchanger
+    left_stable = stable(left.b_transit)
+    right_stable = stable(right.b_transit)
+    pivot_stable = stable(pivot.f_transit)
+    new{2}(
+      0, ## just leave it out for now         # op
+      left.sing,                              # sing
+      left.orig_out,                          # left
+      right.orig_out,                         # right
+      pivot.orig_in,                          # pivot
+      left_stable,                            # left_stable
+      right_stable,                           # right_stable
+      pivot_stable,                           # pivot_stable
+      1 - abs(dot(left_stable, right_stable)) # gap
+    )
+  end
 end
 
 # this function takes in two versions of the same SL(2,C) cocycle---orig, which
 # was built from scratch using the Cocycle constructor, and iter, which has been
 # iterated using twostep or a similar function. it returns the abelianized
 # cocycle over the original interval exchange.
-function abelianize(orig::Cocycle, iter::Cocycle)
+function abelianize(orig::Cocycle{R, n}, iter::Cocycle) where R <: AbstractInterval where n
   # build the abelianized cocycle, block by block
   blocks_by_in = typeof(first(orig.blocks_by_in))[]
   for bl in orig.blocks_by_in
@@ -453,7 +488,7 @@ function abelianize(orig::Cocycle, iter::Cocycle)
     # abelianization jumps on the way from x to y along the base interval. the
     # jumps come ordered from right to left, so we have to reverse the product
     # if the path from x to y goes to the right.
-    ab_jumps = scancollect(iter, Jump, f_fn = FJump, b_fn = BJump)
+    ab_jumps = scancollect(iter, Jump{n}, f_fn = FJump{n}, b_fn = BJump{n})
     dev = prod([j.op for j in filter(enroute, ab_jumps)])
     if !leftward
       dev = inv(dev)
@@ -492,7 +527,7 @@ function abelianize(orig::Cocycle, iter::Cocycle)
   end
   
   # return
-  Cocycle(
+  Cocycle{R, n}(
     blocks_by_in,
     sort(blocks_by_in, by = b -> b.orig_out)
   )

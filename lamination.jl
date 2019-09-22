@@ -20,6 +20,7 @@ using
   Colors,
   Compose,
   Main.PoincaréDisk,
+  Main.ProjectivePlane,
   Main.Crawl,
   LinearAlgebra,
   ValidatedNumerics,
@@ -85,18 +86,18 @@ const shell = LaminationTheme(
 )
 
 polygon_penciller(theme::LaminationTheme) =
-  (verts, sing) -> ideal_edges(verts...)
+  (verts, sing) -> ideal_edges(verts)
 
 polygon_inker(theme::LaminationTheme) =
   (verts, sing) -> compose(
     context(),
-    ideal_path(verts...),
+    ideal_path(verts),
     fill(theme.checkcolor)
   )
 
 function triangle_inker(theme::LaminationTheme)
   if theme.fillstyle == SOLID
-    return (verts, sing) -> ideal_path(verts...)
+    return (verts, sing) -> ideal_path(verts)
   elseif theme.fillstyle == HORO
     return (verts, sing) -> horotriangle(verts..., 69, 1/21, 4e-3)
   end
@@ -104,9 +105,10 @@ end
 
 # === ideal polygons
 
+## somewhat geometry-independent. put it with more general code?
 struct IdealPolygon
   sing::Integer
-  verts
+  verts ## right now, as a kludge, drawing methods dispatch on vertex type
 end
 
 function startblock(orig_out, a::Cocycle)
@@ -121,10 +123,20 @@ end
 
 # find the triangle formed by the forward- and backward-stable lines at a jump
 # in a cocycle
-triangulate(j::Jump) =
+
+## this is where the dispatch magic happens, choosing between Poincaré disk and
+# projective plane drawing methods
+
+triangulate(j::Jump{1}) =
   IdealPolygon(
     j.sing,
-    [planeproj(v) for v in [j.pivot_stable, j.right_stable, j.left_stable]]
+    [PoincaréDisk.planeproj(v) for v in [j.pivot_stable, j.right_stable, j.left_stable]]
+  )
+
+triangulate(j::Jump{2}) =
+  IdealPolygon(
+    j.sing,
+    [ProjectivePlane.planeproj(v) for v in [j.pivot_stable, j.right_stable, j.left_stable]]
   )
 
 # foliate the translation surface carrying `loc` at the given angle, pull the
@@ -132,13 +144,14 @@ triangulate(j::Jump) =
 # return the complementary triangles of the resulting geodesic lamination. we
 # approximate the lamination by doubling the first return cocycle `depth` times.
 
-function triangulate(angle::R, loc::CaterpillarLocSys, depth::Integer; verbose = false) where R <: AbstractInterval
+## this should just be for rank 1?
+function triangulate(angle::R, loc::CaterpillarLocSys{n}, depth::Integer; verbose = false) where R <: AbstractInterval where n
   # build and evolve cocycle
   orig = Caterpillar.cocycle(angle, loc)
   iter = power_twostep(orig, depth, verbose = verbose)
   
   # find the widest triangle for each singularity
-  b_jumps = scancollect(iter, Jump, b_fn = BJump)
+  b_jumps = scancollect(iter, Jump{n}, b_fn = BJump{n})
   widest = Jump[]
   for sing in 1:4
     push!(widest, maximum(filter(j -> j.sing == sing, b_jumps)))
@@ -148,6 +161,7 @@ function triangulate(angle::R, loc::CaterpillarLocSys, depth::Integer; verbose =
   [triangulate(j) for j in widest]
 end
 
+## dispatch on rank of loc
 function triangulate(angle::R, loc::PunkdTorusLocSys, depth::Integer; verbose = false) where R <: AbstractInterval
   # set up cocycle
   orig = PunkdTorus.cocycle(angle, loc)
@@ -155,7 +169,7 @@ function triangulate(angle::R, loc::PunkdTorusLocSys, depth::Integer; verbose = 
   
   # find the triangle to the right of the critical leaf rising out of the
   # northwest puncture
-  nw_verts = [planeproj(v) for v in [
+  nw_verts = [PoincaréDisk.planeproj(v) for v in [
     loc.punks[1],
     orig.blocks_by_out[2].b_transit * stable(startblock(2, iter).b_transit),
     stable(first(iter.blocks_by_in).f_transit)
@@ -163,7 +177,7 @@ function triangulate(angle::R, loc::PunkdTorusLocSys, depth::Integer; verbose = 
   
   # find the triangle to the left of the critical leaf rising out of the
   # southeast puncture
-  se_verts = [planeproj(v) for v in [
+  se_verts = [PoincaréDisk.planeproj(v) for v in [
     loc.punks[3],
     stable(last(iter.blocks_by_in).f_transit),
     orig.blocks_by_out[1].b_transit * stable(endblock(1, iter).b_transit)
@@ -176,10 +190,13 @@ end
 # given an ideal polygon, return the function that takes a möbius transformation
 # m, applies it to the polygon, and draws the result with the given drawing
 # function
+## geometry-independent? put it with more general code?
+my_norm_sqr(v::Number) = abs2(v)
+my_norm_sqr(v::Vector{T}) where T <: Number = sum(abs2.(v))
 orbiter(p::IdealPolygon, eps, draw, shift = I; diam = [2, 3]) =
   m -> begin
     verts = [möbius_map(shift*m, v) for v in p.verts]
-    if eps == nothing || abs2(verts[diam[1]] - verts[diam[2]]) > eps*eps
+    if eps == nothing || my_norm_sqr(verts[diam[1]] - verts[diam[2]]) > eps*eps
       return draw(verts, p.sing)
     else
       return nothing
@@ -195,9 +212,11 @@ orbiter(p::IdealPolygon, eps, draw, shift = I; diam = [2, 3]) =
 # for the holonomy group. if a frame number is specified, render an
 # appropriately named bitmap to be used as a frame of a movie. otherwise, render
 # a PDF or SVG test frame.
+## dispatch on rank of loc
 function render(
   angle::R,
   loc,
+  depth::Integer,
   crawler,
   eps,
   theme;
@@ -205,7 +224,7 @@ function render(
   verbose = false
 ) where R <: AbstractInterval
   # get complementary triangles
-  triangles = triangulate(angle, loc, 4, verbose = verbose)
+  triangles = triangulate(angle, loc, depth, verbose = verbose)
   
   # do centering, if requested
   if center == nothing
@@ -264,7 +283,7 @@ function render(
   
   # draw fundamental domain checkers
   if theme.checkcolor != nothing && isa(loc, PunkdTorusLocSys)
-    fund = IdealPolygon(1, [planeproj(v) for v in loc.punks])
+    fund = IdealPolygon{1}(1, [PoincaréDisk.planeproj(v) for v in loc.punks])
     checks = altcollect(orbiter(fund, eps, polygon_inker(theme), shift), crawler)
     check_gp = compose(context(), checks...)
     push!(layers, check_gp)

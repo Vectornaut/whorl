@@ -6,7 +6,7 @@ export CaterpillarLocSys, cocycle, abelianize, symmetric_caterpillar, almost_fla
 
 tilt(x::Integer, y::Integer) = ((10*x + 7*y)//149, (-7*x + 10*y)//149)
 
-struct CaterpillarLocSys
+struct CaterpillarLocSys{n}
   f_transit
 end
 
@@ -23,14 +23,14 @@ function proj(angle::R, pt::Tuple{T, T}) where R <: AbstractInterval where T <: 
   (tilt_pt[1] - (tilt_up[1]/tilt_up[2])*tilt_pt[2])::R
 end
 
-function cocycle(angle::R, loc::CaterpillarLocSys) where R <: AbstractInterval
+function cocycle(angle::R, loc::CaterpillarLocSys{n}) where R <: AbstractInterval where n
   # branch points of a presentation of a genus-five surface with four
   # singularities
   branch_pts = [(0, 1), (1, 1), (2, 2), (2, 3), (3, 3), (4, 4), (5, 4), (6, 5), (7, 5), (7, 6), (8, 7), (9, 7), (10, 7)]
   
   breaks = [proj(angle, pt) for pt in branch_pts]
   f_shuffle = [7, 12, 11, 10, 9, 8, 13, 6, 5, 4, 3, 2, 1]
-  Cocycle(breaks, loc.f_transit, f_shuffle)
+  Cocycle{R, n}(breaks, loc.f_transit, f_shuffle)
 end
 
 function abelianize(angle::R, loc::CaterpillarLocSys, depth::Integer) where R <: AbstractInterval
@@ -44,7 +44,8 @@ function abelianize(angle::R, loc::CaterpillarLocSys, depth::Integer) where R <:
   CaterpillarLocSys(ab_transit)
 end
 
-symmetric_caterpillar(m4, m5, m7, m8, m9, a, b) = CaterpillarLocSys(
+## for now, you have to specify the cocycle group by hand, using the argument n
+symmetric_caterpillar(m4, m5, m7, m8, m9, a, b, n) = CaterpillarLocSys{n}(
   Array[
     b*inv(m9)*a,
     b*inv(m8)*a,
@@ -62,7 +63,8 @@ symmetric_caterpillar(m4, m5, m7, m8, m9, a, b) = CaterpillarLocSys(
   ]
 )
 
-function almost_flat_caterpillar(g)
+## for now, you have to specify the cocycle group by hand, using the argument n
+function almost_flat_caterpillar(g, n)
   m4 = g[4]
   m5 = g[3]
   m7 = g[2]
@@ -70,7 +72,7 @@ function almost_flat_caterpillar(g)
   m9 = m8*inv(m7)*m5*inv(m4)
   a = -m5*inv(m4)
   b = -inv(m4)*m5
-  symmetric_caterpillar(m4, m5, m7, m8, m9, a, b)
+  symmetric_caterpillar(m4, m5, m7, m8, m9, a, b, n)
 end
 
 end

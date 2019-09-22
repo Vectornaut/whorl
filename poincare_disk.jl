@@ -4,7 +4,7 @@ export
   möbius_map,
   pts_to_pts,
   stable,
-  planeproj,
+  ##planeproj,
   geodesic,
   ideal_edges,
   ideal_path,
@@ -12,6 +12,7 @@ export
   geodesic_orbit
 
 using LinearAlgebra, Compose
+using GenericLinearAlgebra ##[higher precision]
 
 # === möbius transformations
 
@@ -19,7 +20,7 @@ using LinearAlgebra, Compose
 
 # apply a möbius transformation, given as an operator on C^2, to a point on the
 # complex plane
-möbius_map(m::Union{AbstractMatrix, UniformScaling}, z) =
+möbius_map(m::Union{AbstractMatrix, UniformScaling}, z::Number) =
   (m[1,1]*z + m[1,2]) / (m[2,1]*z + m[2,2])
 
 # find the derivative of a möbius transformation, given as an operator on C^2,
@@ -43,6 +44,7 @@ pts_to_pts(a0, b0, c0, a1, b1, c1) =
   std_to_pts(a1, b1, c1) * inv(std_to_pts(a0, b0, c0))
 
 # find the stable line of an element of GL(2,C)
+## somewhat geometry-independent; put with more general code?
 function stable(m::Union{AbstractMatrix, UniformScaling})
   # by default, `eigen` sorts the eigenvalues lexicographically by their real
   # and imaginary parts. that means the first eigenvector of a Hermitian matrix
@@ -79,14 +81,16 @@ geodesic(tail::Number, head::Number) =
   )
 
 # draw an ideal polygon as a sequence of geodesics, good for stroking
-function ideal_edges(verts::Number...)
+## somewhat geometry-independent. put with more general code?
+function ideal_edges(verts::Vector{<:Number})
   n = length(verts)
   cyc = i -> mod(i, n) + 1
   compose([geodesic(verts[cyc(i)], verts[cyc(i+1)]) for i in 0:(n-1)]...)
 end
 
 # draw an ideal polygon as a path, good for filling
-function ideal_path(verts::Number...)
+## somewhat geometry-independent. put with more general code?
+function ideal_path(verts::Vector{<:Number})
   n = length(verts)
   cyc = i -> mod(i, n) + 1
   compose(
