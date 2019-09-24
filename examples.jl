@@ -671,6 +671,46 @@ function movie(; shape = CaterpillarLocSys, rank = 1, ascent = 2, depth = 4, eps
   end
 end
 
+# === SL(3,R) deformation movie
+
+function render_deformation(transit, perturbation, amount, crawler, depth, eps, theme)
+
+end
+
+function deformation_movie(; ascent = 2, depth = 4, eps = 1e-3, theme = tacos, testframe = true, svg = false, verbose = true)
+  # enumerate symmetry group elements
+  transit = veronese_emb.(Regular.generators(4, 4, true))
+  perturbation = Matrix[
+    [1 0 0; 0 -1 0; 0 0 0],
+    [0 0 0; 0 0 0; 0 0 0],
+    [0 0 0; 0 0 0; 0 0 0],
+    [0 0 0; 0 0 0; 0 0 0],
+  ]
+  transit_dfm = map(expconj(0.001), zip(transit, perturbation))
+  dbl_transit_dfm = [transit_dfm; [inv(t) for t in transit_dfm]]
+  
+  # set up local system
+  loc = almost_flat_caterpillar(transit_dfm, 2);
+  
+  # set up crawler
+  crawler = TileCrawler(4, 4, ascent)
+  findhome!(crawler, dbl_transit_dfm)
+  
+  # set angle
+  angle = @interval(3π/4 + 1//11)
+  
+  # render frames
+  if testframe
+    println("Test frame")
+    frame = @time(Lamination.render(angle, loc, depth, crawler, eps, theme, verbose = verbose))
+    if svg
+      draw(SVG("triangle_test.svg", 7cm, 7cm), frame)
+    else
+      draw(PDF("triangle_test.pdf", 7cm, 7cm), frame)
+    end
+  end
+end
+
 # === latitude geodesic on a punctured torus
 
 # draw some lifts of the geodesic around the latitude of a punctured torus. note
