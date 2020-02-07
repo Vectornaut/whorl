@@ -55,43 +55,71 @@ end
 # project a line in affine space to the complex plane
 planeproj(v::Vector{T}) where T <: Number = v[1] / v[2]
 
+# the control point scale factor in Clinton Curry's method for approximating
+# geodesics by cubic curves
+#   https://web.archive.org/web/20161020210738/http://clintoncurry.nfshost.com/math/poincare-geodesics.html
+# the _max_ in k is a kludge to avoid square roots of negative numbers
+curryfactor(tail::Number, head::Number) =
+  4/3 * (1/(1 + sqrt(max(1 - abs2(head + tail)/4, 0))) - 1/4)
+
 # list the control points and endpoint of a geodesic between two points on the
 # boundary of the Poincaré disk. the `Compose.bezigon` method takes a list of
 # such lists as its `sides` argument
 function geodesic_side(tail::Number, head::Number)
-  # this is Clinton Curry's method for approximating geodesics by cubic curves
-  # http://clintoncurry.nfshost.com/math/poincare-geodesics.html
-  # the _max_ in k is a kludge to avoid square roots of negative numbers
-  k = 4/3 * (1/(1 + sqrt(max(1 - abs2(head + tail)/4, 0))) - 1/4)
+  k = curryfactor(tail, head)
   [reim(k*tail), reim(k*head), reim(head)]
 end
 
 # draw the geodesic between two points on the boundary of the Poincaré disk
-geodesic(tail::Number, head::Number) =
+function geodesic(tail::Number, head::Number)
+  k = curryfactor(tail, head)
   compose(
     context(units=UnitBox(-1, -1, 2, 2)),
-    curve(reim(tail), geodesic_side(tail, head)...)
+    curve(reim(tail), reim(k*tail), reim(k*head), reim(head))
   )
+end
+
+# arguments can be passed in arrays in order to perform multiple drawing operations
+function geodesic(tails::Vector{<:Number}, heads::Vector{<:Number})
+  ks = [curryfactor(tail, head) for (tail, head) in zip(tails, heads)]
+  compose(
+    context(units=UnitBox(-1, -1, 2, 2)),
+    curve(reim.(tails), reim.(ks.*tails), reim.(ks.*heads), reim.(heads))
+  )
+end
 
 # draw an ideal polygon as a sequence of geodesics, good for stroking
-function ideal_edges(verts::Number...)
-  n = length(verts)
-  cyc = i -> mod(i, n) + 1
-  compose([geodesic(verts[cyc(i)], verts[cyc(i+1)]) for i in 0:(n-1)]...)
+ideal_edges(verts::Vector{<:Number}) = geodesic(verts, circshift(verts, -1))
+
+# arguments can be passed in arrays in order to perform multiple drawing operations
+function ideal_edges(polyverts::Vector{<:Vector{<:Number}})
+  tails = vcat(polyverts...)
+  heads = vcat([circshift(verts, -1) for verts in polyverts]...)
+  geodesic(tails, heads)
 end
 
 # draw an ideal polygon as a path, good for filling
-function ideal_path(verts::Number...)
-  n = length(verts)
-  cyc = i -> mod(i, n) + 1
+ideal_path(verts::Vector{<:Number}) =
   compose(
     context(units=UnitBox(-1, -1, 2, 2)),
     bezigon(
-      reim(verts[1]),
-      [geodesic_side(verts[cyc(i)], verts[cyc(i+1)]) for i in 0:(n-1)]
+      reim(first(verts)),
+      [geodesic_side(tail, head) for (tail, head) in zip(verts, cirshift(verts, -1))]
     )
   )
-end
+
+# arguments can be passed in arrays in order to perform multiple drawing operations
+ideal_path(polyverts::Vector{<:Vector{<:Number}}) =
+  compose(
+    context(units=UnitBox(-1, -1, 2, 2)),
+    bezigon(
+      reim.(first.(polyverts)),
+      [
+        [geodesic_side(tail, head) for (tail, head) in zip(verts, cirshift(verts, -1))]
+        for verts in polyverts
+      ]
+    )
+  )
 
 # draw the circular arc from tail to head with the specified direction at the
 # the tail. the length of the direction vector doesn't matter. unstable at large

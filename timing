@@ -1,15 +1,27 @@
-=== bezigon, non-vectorized ===
+=== bezigon, non-vectorized (commit ac9594c) ===
 
-each timing is from a cold start
+each timing is from a cold start. this may be misleading. based on profiling and comparing second-run times for increasing ascents, i'm starting to suspect that a large part of the recorded time and allocations are spent on compilation.
 
 julia> Examples.movie()
-9.787447 seconds (20.34 M allocations: 1.037 GiB, 8.44% gc time)
+  Inking triangles
+    2.813126 seconds (5.94 M allocations: 321.476 MiB, 5.56% gc time)
+  Composing triangles
+    0.006405 seconds (1.77 k allocations: 93.868 KiB)
+  9.787447 seconds (20.34 M allocations: 1.037 GiB, 8.44% gc time)
 
 julia> Examples.movie(svg = true)
-9.635546 seconds (20.34 M allocations: 1.037 GiB, 7.99% gc time)
+  Inking triangles
+    2.739136 seconds (5.94 M allocations: 321.009 MiB, 4.87% gc time)
+  Composing triangles
+    0.006330 seconds (1.77 k allocations: 93.868 KiB)
+  9.635546 seconds (20.34 M allocations: 1.037 GiB, 7.99% gc time)
 
 julia> Examples.movie(theme=Lamination.bone)
-10.970602 seconds (24.22 M allocations: 1.460 GiB, 14.05% gc time)
+  Inking triangles
+    2.203953 seconds (6.61 M allocations: 538.642 MiB, 36.96% gc time)
+  Composing triangles
+    0.016530 seconds (4.73 k allocations: 253.001 KiB)
+ 10.970602 seconds (24.22 M allocations: 1.460 GiB, 14.05% gc time)
 
 ------------
 

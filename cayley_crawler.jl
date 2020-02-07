@@ -28,15 +28,19 @@ end
 
 function mapcollect(f::Function, crawler::CayleyCrawler; prune = false)
   value = f(crawler.home)
-  if prune && value == nothing
-    collected = []
+  passed = [mapcollect(f, sh, prune = prune) for sh in crawler.shoots]
+  if prune
+    collected = vcat(filter(!isnothing, passed)...)
+    if isempty(collected)
+      return (value == nothing) ? nothing : [value]
+    else
+      if (value != nothing)
+        push!(collected, value)
+      end
+      return collected
+    end
   else
-    collected = [value]
-  end
-  if isempty(crawler.shoots)
-    return collected
-  else
-    return vcat(collected, [mapcollect(f, sh, prune = prune) for sh in crawler.shoots]...)
+    return [value; passed...]
   end
 end
 

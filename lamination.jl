@@ -84,9 +84,6 @@ const shell = LaminationTheme(
   RGB(1, 1, 1)                           # diskcolor
 )
 
-polygon_penciller(theme::LaminationTheme) =
-  (verts, sing) -> ideal_edges(verts...)
-
 polygon_inker(theme::LaminationTheme) =
   (verts, sing) -> compose(
     context(),
@@ -174,13 +171,12 @@ function triangulate(angle::R, loc::PunkdTorusLocSys, depth::Integer; verbose = 
 end
 
 # given an ideal polygon, return the function that takes a möbius transformation
-# m, applies it to the polygon, and draws the result with the given drawing
-# function
-orbiter(p::IdealPolygon, eps, draw, shift = I; diam = [2, 3]) =
+# m, applies it to the polygon, and returns the result if it's big enough
+orbiter(p::IdealPolygon, eps, shift = I; diam = [2, 3]) =
   m -> begin
     verts = [möbius_map(shift*m, v) for v in p.verts]
     if eps == nothing || abs2(verts[diam[1]] - verts[diam[2]]) > eps*eps
-      return draw(verts, p.sing)
+      return verts
     else
       return nothing
     end
@@ -225,11 +221,11 @@ function render(
     clip = compose(context(), circle(), stroke("white"), linewidth(0.1mm), fill(nothing))
     push!(layers, clip)
     
-    leaves = vcat([
-      mapcollect(orbiter(t, eps, polygon_penciller(theme), shift), crawler, prune = true)
+    leaves = ideal_edges(vcat([
+      mapcollect(orbiter(t, eps, shift), crawler, prune = true)
       for t in triangles
-    ]...)
-    leaf_layer = compose(context(), leaves..., stroke(theme.leafcolor), linewidth(0.1mm), fill(nothing))
+    ]...))
+    leaf_layer = compose(context(), leaves, stroke(theme.leafcolor), linewidth(0.1mm), fill(nothing))
     push!(layers, leaf_layer)
   end
   
