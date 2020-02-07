@@ -55,27 +55,22 @@ end
 # project a line in affine space to the complex plane
 planeproj(v::Vector{T}) where T <: Number = v[1] / v[2]
 
-# a version of reim for use in Compose paths
-reim_measure(z::Number) = (real(z)*cx, imag(z)*cy)
-
-# write the curveto command for a geodesic between two points on the boundary of
-# the Poincaré disk
-function geodesic_curveto(tail::Number, head::Number)
+# list the control points and endpoint of a geodesic between two points on the
+# boundary of the Poincaré disk. the `Compose.bezigon` method takes a list of
+# such lists as its `sides` argument
+function geodesic_side(tail::Number, head::Number)
   # this is Clinton Curry's method for approximating geodesics by cubic curves
   # http://clintoncurry.nfshost.com/math/poincare-geodesics.html
   # the _max_ in k is a kludge to avoid square roots of negative numbers
   k = 4/3 * (1/(1 + sqrt(max(1 - abs2(head + tail)/4, 0))) - 1/4)
-  [:C, reim_measure(k*tail)..., reim_measure(k*head)..., reim_measure(head)...]
+  [reim(k*tail), reim(k*head), reim(head)]
 end
 
 # draw the geodesic between two points on the boundary of the Poincaré disk
 geodesic(tail::Number, head::Number) =
   compose(
     context(units=UnitBox(-1, -1, 2, 2)),
-    path([
-      :M; reim_measure(tail)...;
-      geodesic_curveto(tail, head)...
-    ])
+    curve(reim(tail), geodesic_side(tail, head)...)
   )
 
 # draw an ideal polygon as a sequence of geodesics, good for stroking
@@ -91,10 +86,10 @@ function ideal_path(verts::Number...)
   cyc = i -> mod(i, n) + 1
   compose(
     context(units=UnitBox(-1, -1, 2, 2)),
-    path([
-      :M; reim_measure(verts[1])...;
-      [geodesic_curveto(verts[cyc(i)], verts[cyc(i+1)]) for i in 0:(n-1)]...
-    ])
+    bezigon(
+      reim(verts[1]),
+      [geodesic_side(verts[cyc(i)], verts[cyc(i+1)]) for i in 0:(n-1)]
+    )
   )
 end
 

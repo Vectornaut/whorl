@@ -1,3 +1,18 @@
+=== bezigon, non-vectorized ===
+
+each timing is from a cold start
+
+julia> Examples.movie()
+9.787447 seconds (20.34 M allocations: 1.037 GiB, 8.44% gc time)
+
+julia> Examples.movie(svg = true)
+9.635546 seconds (20.34 M allocations: 1.037 GiB, 7.99% gc time)
+
+julia> Examples.movie(theme=Lamination.bone)
+10.970602 seconds (24.22 M allocations: 1.460 GiB, 14.05% gc time)
+
+------------
+
 === exhaustive search
 
   0.000438 seconds (2.21 k allocations: 64.313 KB)
