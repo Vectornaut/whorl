@@ -76,6 +76,14 @@ const bone = LaminationTheme(
   RGB(39/255, 36/255, 33/255)           # diskcolor
 )
 
+const hollowbone = LaminationTheme(
+  RGB(172/255, 146/255, 122/255),       # leafcolor
+  nothing,                              # fillcolor
+  SOLID,                                # fillstyle
+  nothing,                              # checkcolor
+  RGB(39/255, 36/255, 33/255)           # diskcolor
+)
+
 const shell = LaminationTheme(
   RGB(0/255, 30/255, 140/255),           # leafcolor
   fill(RGB(0/255, 150/255, 173/255), 4), # fillcolor
