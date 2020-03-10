@@ -104,7 +104,7 @@ ideal_path(verts::Vector{<:Number}) =
     context(units=UnitBox(-1, -1, 2, 2)),
     bezigon(
       reim(first(verts)),
-      [geodesic_side(tail, head) for (tail, head) in zip(verts, cirshift(verts, -1))]
+      [geodesic_side(tail, head) for (tail, head) in zip(verts, circshift(verts, -1))]
     )
   )
 
@@ -115,7 +115,7 @@ ideal_path(polyverts::Vector{<:Vector{<:Number}}) =
     bezigon(
       reim.(first.(polyverts)),
       [
-        [geodesic_side(tail, head) for (tail, head) in zip(verts, cirshift(verts, -1))]
+        [geodesic_side(tail, head) for (tail, head) in zip(verts, circshift(verts, -1))]
         for verts in polyverts
       ]
     )

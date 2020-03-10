@@ -99,14 +99,6 @@ polygon_inker(theme::LaminationTheme) =
     fill(theme.checkcolor)
   )
 
-function triangle_inker(theme::LaminationTheme)
-  if theme.fillstyle == SOLID
-    return (verts, sing) -> ideal_path(verts...)
-  elseif theme.fillstyle == HORO
-    return (verts, sing) -> horotriangle(verts..., 69, 1/21, 4e-3)
-  end
-end
-
 # === ideal polygons
 
 struct IdealPolygon
@@ -243,14 +235,16 @@ function render(
       print("  Inking triangles\n  ")
     end
     if theme.fillstyle == SOLID
+      inker = ideal_path
       colorprop = fill
     elseif theme.fillstyle == HORO
+      inker = verts -> horotriangle(verts..., 69, 1/21, 4e-3) ## this will need to change
       colorprop = stroke
     end
     fill_gps = @time([
       compose(
         context(),
-        mapcollect(orbiter(t, eps, triangle_inker(theme), shift), crawler, prune = true)...,
+        inker(mapcollect(orbiter(t, eps, shift), crawler, prune = true)),
         colorprop(theme.fillcolor[t.sing])
       )
       for t in triangles
