@@ -1,11 +1,25 @@
+~~~ shared info for bezigon benchmarks ~~~
+
+ascent | geodesics | triangles
+     2 |      6038 |      2012
+     3 |     25744 |      8601
+     4 |     47705 |     17079
+
+--- for commits before hollowbone theme is added ---
+
+using Colors
+
+const hollowbone = Lamination.LaminationTheme(
+  RGB(172/255, 146/255, 122/255), # leafcolor
+  nothing,                        # fillcolor
+  Lamination.SOLID,               # fillstyle
+  nothing,                        # checkcolor
+  RGB(39/255, 36/255, 33/255)     # diskcolor
+)
+
 === bezigon, vectorized (commit fed12eb) ===
 
 each timing is from a cold start.
-
-ascent | geodesics
-     2 |      6038
-     3 |     25744
-     4 |     47705
 
 --- Julia 1.31 ---
 
@@ -154,6 +168,155 @@ Test frame
 === bezigon, non-vectorized (commit ac9594c) ===
 
 each timing is from a cold start.
+
+--- Julia 1.31 ---
+
+julia> Examples.movie(theme = hollowbone, testframe = false)
+
+Frame 0
+  7.753444 seconds (14.46 M allocations: 789.128 MiB, 4.31% gc time)
+Frame 1
+  0.124999 seconds (264.20 k allocations: 67.529 MiB)
+Frame 2
+  0.159598 seconds (264.29 k allocations: 67.533 MiB, 30.92% gc time)
+Frame 3
+  0.137233 seconds (264.20 k allocations: 67.529 MiB, 21.76% gc time)
+Frame 4
+  0.114559 seconds (264.20 k allocations: 67.529 MiB)
+Frame 5
+  0.104312 seconds (264.22 k allocations: 67.530 MiB)
+Frame 6
+  0.122810 seconds (263.61 k allocations: 67.103 MiB, 18.36% gc time)
+Frame 7
+  0.099442 seconds (260.88 k allocations: 65.104 MiB)
+Frame 8
+  0.114719 seconds (261.09 k allocations: 65.260 MiB, 13.52% gc time)
+Frame 9
+  0.114566 seconds (257.04 k allocations: 62.370 MiB, 20.57% gc time)
+Frame 10
+  0.097076 seconds (257.03 k allocations: 62.370 MiB)
+Frame 11
+  0.109967 seconds (255.90 k allocations: 61.558 MiB, 19.27% gc time)
+Frame 12
+  0.097023 seconds (255.82 k allocations: 61.508 MiB)
+Frame 13
+  0.154709 seconds (308.44 k allocations: 64.192 MiB, 12.31% gc time)
+Frame 14
+  0.091264 seconds (255.87 k allocations: 61.510 MiB)
+Frame 15
+  0.095133 seconds (255.94 k allocations: 61.560 MiB)
+Frame 16
+  0.111483 seconds (255.93 k allocations: 61.560 MiB, 19.95% gc time)
+Frame 17
+  0.096149 seconds (256.99 k allocations: 62.321 MiB)
+Frame 18
+  0.109330 seconds (256.99 k allocations: 62.321 MiB, 14.45% gc time)
+Frame 19
+  0.090266 seconds (256.92 k allocations: 62.270 MiB)
+Frame 20
+  0.095288 seconds (256.92 k allocations: 62.270 MiB)
+Frame 21
+  0.112169 seconds (256.92 k allocations: 62.269 MiB, 19.14% gc time)
+Frame 22
+  0.094231 seconds (256.92 k allocations: 62.270 MiB)
+Frame 23
+  0.106783 seconds (256.92 k allocations: 62.269 MiB, 13.96% gc time)
+Frame 24
+  0.116872 seconds (256.92 k allocations: 62.270 MiB, 21.04% gc time)
+Frame 25
+  0.098086 seconds (256.92 k allocations: 62.269 MiB)
+
+julia> Examples.movie(theme = hollowbone, ascent = 3)
+
+After 5 minutes of running, program has jammed, and CPU is at zero! Memory use is up about 1 GB.
+
+^C doesn't work.
+
+`kill` doesn't work; output says "Allocations: 139247419 (Pool: 139209561; Big: 37858); GC: 110".
+
+Only way to stop the program is to force-close the whole terminal.
+
+=== julia 1.2 with custom Compose (Whorl commit 909da40, Compose commit 51e5960) ===
+
+--- Julia 1.2 ---
+
+julia> Examples.movie(theme = hollowbone, testframe = false)
+
+Frame 0
+  9.650740 seconds (20.31 M allocations: 1.037 GiB, 8.64% gc time)
+Frame 1
+  0.389211 seconds (1.99 M allocations: 113.811 MiB, 17.83% gc time)
+Frame 2
+  0.405181 seconds (1.99 M allocations: 113.815 MiB, 18.47% gc time)
+Frame 3
+  0.401639 seconds (1.99 M allocations: 113.811 MiB, 19.95% gc time)
+Frame 4
+  0.402878 seconds (1.99 M allocations: 113.811 MiB, 19.06% gc time)
+Frame 5
+  0.406386 seconds (1.99 M allocations: 113.812 MiB, 19.72% gc time)
+Frame 6
+  0.408692 seconds (1.99 M allocations: 113.211 MiB, 20.23% gc time)
+Frame 7
+  0.498732 seconds (1.95 M allocations: 110.386 MiB, 37.75% gc time)
+Frame 8
+  0.375819 seconds (1.96 M allocations: 110.608 MiB, 17.80% gc time)
+Frame 9
+  0.367936 seconds (1.91 M allocations: 106.499 MiB, 18.50% gc time)
+Frame 10
+  0.379177 seconds (1.91 M allocations: 106.499 MiB, 19.20% gc time)
+Frame 11
+  0.364753 seconds (1.89 M allocations: 105.339 MiB, 17.08% gc time)
+Frame 12
+  0.383556 seconds (1.89 M allocations: 105.268 MiB, 20.42% gc time)
+Frame 13
+  0.438547 seconds (1.98 M allocations: 109.943 MiB, 18.83% gc time)
+Frame 14
+  0.478402 seconds (1.89 M allocations: 105.270 MiB, 36.93% gc time)
+Frame 15
+  0.356324 seconds (1.89 M allocations: 105.342 MiB, 17.14% gc time)
+Frame 16
+  0.352411 seconds (1.89 M allocations: 105.342 MiB, 15.53% gc time)
+Frame 17
+  0.431439 seconds (1.91 M allocations: 106.428 MiB, 18.18% gc time)
+Frame 18
+  0.415996 seconds (1.91 M allocations: 106.428 MiB, 18.38% gc time)
+Frame 19
+  0.376127 seconds (1.91 M allocations: 106.356 MiB, 17.61% gc time)
+Frame 20
+  0.387926 seconds (1.91 M allocations: 106.355 MiB, 20.68% gc time)
+Frame 21
+  0.477563 seconds (1.91 M allocations: 106.355 MiB, 37.68% gc time)
+Frame 22
+  0.353869 seconds (1.91 M allocations: 106.355 MiB, 16.41% gc time)
+Frame 23
+  0.370607 seconds (1.91 M allocations: 106.356 MiB, 18.71% gc time)
+Frame 24
+  0.359718 seconds (1.91 M allocations: 106.356 MiB, 16.94% gc time)
+Frame 25
+  0.379496 seconds (1.91 M allocations: 106.355 MiB, 19.49% gc time)
+
+julia> Examples.movie(theme = hollowbone, ascent = 3)
+
+After 1 or 2 minutes of running, program has jammed, and CPU is at zero! Memory use is up about 0.5 GB.
+
+^C doesn't work.
+
+`kill` doesn't work; output says "Allocations: 139247419 (Pool: 139209561; Big: 37858); GC: 110".
+
+Only way to stop the program is to force-close the whole terminal.
+
+julia> Examples.movie()
+ 10.247308 seconds (19.14 M allocations: 988.103 MiB, 8.18% gc time)
+
+julia> Examples.movie(ascent = 3)
+
+Test frame
+ 10.211677 seconds (23.26 M allocations: 1.376 GiB, 11.11% gc time)
+
+julia> Examples.movie(ascent = 4)
+
+Test frame
+ 26.838284 seconds (116.94 M allocations: 7.658 GiB, 28.54% gc time)
 
 === bezigon, non-vectorized, one frame only (commit ac9594c) ===
 
