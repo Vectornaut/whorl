@@ -137,6 +137,7 @@ function arc(tail::Number, head::Number, dir::Number)
   
   # the magic number
   k = 4/3*(sqrt(2) - 1) * abs(imag(sweep)/real(sweep))
+  println(real(sweep))
   
   # the radius of the arc
   r = abs((head - tail) / 2imag(sweep))
@@ -148,6 +149,28 @@ function arc(tail::Number, head::Number, dir::Number)
   compose(
     context(units=UnitBox(-1, -1, 2, 2)),
     curve(reim(tail), reim(tail + k*r*tail_tan), reim(head - k*r*head_tan), reim(head))
+  )
+end
+
+# arguments can be passed in arrays in order to perform multiple drawing operations
+function arc(tails::Vector{<:Number}, heads::Vector{<:Number}, dirs::Vector{<:Number})
+  # the angles from the ray tail --> head to the tangent ray
+  sweeps = dirs ./ (heads .- tails)
+  sweeps ./= abs.(sweeps)
+  
+  # the magic numbers
+  ks = 4/3*(sqrt(2) - 1) * abs.(imag.(sweeps)./real.(sweeps))
+  
+  # the radii of the arcs
+  rs = abs.((heads .- tails) ./ 2imag.(sweeps))
+  
+  # unit tangent vectors at the head and the tail
+  tail_tans = dirs ./ abs.(dirs)
+  head_tans = tail_tans ./ (sweeps .* sweeps)
+  
+  compose(
+    context(units=UnitBox(-1, -1, 2, 2)),
+    curve(reim.(tails), reim.(tails .+ ks.*rs.*tail_tans), reim.(heads .- ks.*rs.*head_tans), reim.(heads))
   )
 end
 

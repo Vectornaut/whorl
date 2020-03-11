@@ -30,6 +30,23 @@ import Cairo, Fontconfig, Main.Regular
 
 # === basic drawing
 
+function arc_test()
+  picture = compose(
+    context(),
+    (
+      PoincaréDisk.arc(0, -0.3 + 0.5im, cis(pi/2)),
+      PoincaréDisk.arc(0, 0.5im, cis(pi/4)),
+      PoincaréDisk.arc(0, 0.3 + 0.5im, cis(pi/4)),
+      stroke("purple")
+    ),
+    (
+      PoincaréDisk.arc([0, 0, 0], [-0.3 + 0.5im, 0.5im, 0.3 + 0.5im], [cis(pi/2), cis(pi/4), cis(pi/4)]),
+      stroke("tomato")
+    )
+  )
+  picture |> SVG("arc_test.svg", 7cm, 7cm)
+end
+
 function farey_tiles(; eps = 1e-3, theme = shell, svg = false)
   # write down symmetry group generators in the upper half-plane model
   farey_generators = [[1 2; 0 1], [1 0; 2 1], [1 -2; 0 1], [1 0; -2 1]]
