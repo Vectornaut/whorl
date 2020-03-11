@@ -30,21 +30,29 @@ import Cairo, Fontconfig, Main.Regular
 
 # === basic drawing
 
-function arc_test()
+function horo_test()
+  verts = [1, cis(2pi/3), cis(4pi/3)]
   picture = compose(
     context(),
     (
-      PoincaréDisk.arc(0, -0.3 + 0.5im, cis(pi/2)),
-      PoincaréDisk.arc(0, 0.5im, cis(pi/4)),
-      PoincaréDisk.arc(0, 0.3 + 0.5im, cis(pi/4)),
+      context(),
+      PoincaréDisk.horoleaves(verts, 69, 1/21, 4e-3),
+      PoincaréDisk.horoleaves(circshift(verts, -1), 69, 1/21, 1e-1),
+      PoincaréDisk.horoleaves(circshift(verts, -2), 69, 1/21, 4e-3),
       stroke("purple")
     ),
     (
-      PoincaréDisk.arc([0, 0, 0], [-0.3 + 0.5im, 0.5im, 0.3 + 0.5im], [cis(pi/2), cis(pi/4), cis(pi/4)]),
+      context(),
+      PoincaréDisk.horoleaves([verts, circshift(verts, -1), circshift(verts, -2)], 69, 1/21, 4e-3),
       stroke("tomato")
+    ),
+    (
+      context(),
+      Compose.circle(),
+      fill(RGB(0.9, 0.9, 0.9))
     )
   )
-  picture |> SVG("arc_test.svg", 7cm, 7cm)
+  picture |> SVG("horo_test.svg", 7cm, 7cm)
 end
 
 function farey_tiles(; eps = 1e-3, theme = shell, svg = false)

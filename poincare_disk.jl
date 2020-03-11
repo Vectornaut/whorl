@@ -174,32 +174,46 @@ function arc(tails::Vector{<:Number}, heads::Vector{<:Number}, dirs::Vector{<:Nu
   )
 end
 
-# draw an arc of a horocycle at osc, starting at the geodesic osc -- a and
-# ending at the geodesic osc -- b, at distance _height_ from the edge of the
-# contact triangle
-function horoarc(osc::Number, a::Number, b::Number, height::Number, eps::Number = 1e-2)
-  # find the tail of the desired arc on the standard triangle ∞, 0, 1
-  std_tail = 1im * exp(height)
-  
-  # apply the mobius transformation
-  #  ∞ --> osc
-  #  0 --> a
-  #  1 --> b
-  # to get the desired arc on the triangle osc, a, b
-  m = std_to_pts(a, b, osc)
-  tail = möbius_map(m, std_tail)
-  head = möbius_map(m, std_tail + 1)
-  if abs2(head - tail) > eps*eps
-    return arc(tail, head, möbius_deriv(m, std_tail))
-  else
-    return compose(context())
-  end
-end
+# foliate the the osc corner of the triangle verts = [osc, a, b] using _cnt_
+# evenly spaced horocycles, starting with the edge of the contact triangle
+horoleaves(verts::Vector{<:Number}, cnt::Integer, spacing::Number, eps::Number = 1e-2) =
+  horoleaves([verts], cnt, spacing, eps)
 
-# foliate the the osc corner of the triangle osc, a, b using _cnt_ evenly spaced
-# horocycles
-horoleaves(osc::Number, a::Number, b::Number, cnt::Integer, spacing::Number, eps::Number = 1e-2) =
-  compose(context(), [horoarc(osc, a, b, n*spacing, eps) for n in 0:(cnt - 1)]...)
+# arguments can be passed in arrays in order to perform multiple drawing operations
+function horoleaves(polyverts::Vector{<:Vector{<:Number}}, cnt::Integer, spacing::Number, eps::Number = 1e-2)
+  # find the tails of the desired arcs on the standard triangle ∞, 0, 1
+  std_tails = [1im * exp(n*spacing) for n in 0:(cnt - 1)]
+  
+  tails = nothing
+  heads = nothing
+  dirs = nothing
+  for (osc, a, b) in polyverts
+    # apply the mobius transformation
+    #  ∞ --> osc
+    #  0 --> a
+    #  1 --> b
+    # to get the desired arcs on the triangle osc, a, b
+    m = std_to_pts(a, b, osc)
+    for n in 1:cnt
+      tail = möbius_map(m, std_tails[n])
+      head = möbius_map(m, std_tails[n] + 1)
+      if abs2(head - tail) > eps*eps
+        if tails == nothing
+          tails = [tail]
+          heads = [head]
+          dirs = [möbius_deriv(m, std_tails[n])]
+        else
+          push!(tails, tail)
+          push!(heads, head)
+          push!(dirs, möbius_deriv(m, std_tails[n]))
+        end
+      else
+        break
+      end
+    end
+  end
+  arc(tails, heads, dirs)
+end
 
 # draw a triangle foliated by horocycles
 horotriangle(osc::Number, a::Number, b::Number, cnt::Integer, spacing::Number, eps::Number = 1e-2) =
