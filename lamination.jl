@@ -238,7 +238,7 @@ function render(
       inker = ideal_path
       colorprop = fill
     elseif theme.fillstyle == HORO
-      inker = verts -> horotriangle(verts..., 69, 1/21, 4e-3) ## this will need to change
+      inker = polyverts -> horotriangle(polyverts, 69, 1/21, 4e-3)
       colorprop = stroke
     end
     fill_gps = @time([
