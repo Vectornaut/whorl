@@ -225,7 +225,7 @@ function render(
       mapcollect(orbiter(t, eps, shift), crawler, prune = true)
       for t in triangles
     ]...))
-    leaf_layer = compose(context(), leaves, stroke(theme.leafcolor), linewidth(0.1mm), fill(nothing))
+    leaf_layer = compose(context(), leaves, stroke(theme.leafcolor), linewidth(0.1mm))
     push!(layers, leaf_layer)
   end
   
@@ -255,7 +255,7 @@ function render(
     if theme.fillstyle == SOLID
       fill_layer = @time(compose(context(), fill_gps...))
     elseif theme.fillstyle == HORO
-      fill_layer = @time(compose(context(), fill_gps..., linewidth(0.1mm), fill(nothing)))
+      fill_layer = @time(compose(context(), fill_gps..., linewidth(0.1mm)))
     end
     push!(layers, fill_layer)
   end
@@ -270,7 +270,7 @@ function render(
   
   # draw background
   if theme.diskcolor != nothing
-    disk = compose(context(), circle(), fill(theme.diskcolor), stroke(nothing))
+    disk = compose(context(), circle(), fill(theme.diskcolor))
     push!(layers, disk)
   end
   
