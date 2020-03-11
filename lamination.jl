@@ -263,8 +263,8 @@ function render(
   # draw fundamental domain checkers
   if theme.checkcolor != nothing && isa(loc, PunkdTorusLocSys)
     fund = IdealPolygon(1, [planeproj(v) for v in loc.punks])
-    checks = altcollect(orbiter(fund, eps, polygon_inker(theme), shift), crawler)
-    check_gp = compose(context(), checks...)
+    checks = ideal_path(altcollect(orbiter(fund, eps, shift), crawler, prune = true))
+    check_gp = compose(context(), checks, fill(theme.checkcolor))
     push!(layers, check_gp)
   end
   

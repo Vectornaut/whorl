@@ -30,49 +30,6 @@ import Cairo, Fontconfig, Main.Regular
 
 # === basic drawing
 
-uhp_to_disk(z) = möbius_map([1 -im; -im 1], z)
-
-function horo_test(shear_l = -3, shear_r = 5)
-  outerdiff = sqrt(3) - 1/sqrt(3)
-  verts = [uhp_to_disk(1/sqrt(3)), im, uhp_to_disk(-1/sqrt(3))]
-  outerverts = [
-    [verts[1], uhp_to_disk(1/sqrt(3) + exp(shear_r/21)*outerdiff), verts[2]],
-    [verts[2], uhp_to_disk(-1/sqrt(3) - exp(shear_l/21)*outerdiff), verts[3]],
-    [verts[3], uhp_to_disk(0), verts[1]]
-  ]
-  picture = compose(
-    context(),
-    (
-      context(),
-      PoincaréDisk.horoleaves(verts, 69, 1/21, 4e-3),
-      PoincaréDisk.horoleaves(circshift(verts, -1), 69, 1/21, 1e-1),
-      PoincaréDisk.horoleaves(circshift(verts, -2), 69, 1/21, 4e-3),
-      stroke("purple")
-    ),
-    (
-      context(),
-      PoincaréDisk.horoleaves([verts, circshift(verts, -1), circshift(verts, -2)], 69, 1/21, 4e-3),
-      stroke("tomato")
-    ),
-    (
-      context(),
-      PoincaréDisk.horotriangle(verts, 69, 1/21, 4e-3),
-      stroke("yellowgreen")
-    ),
-    (
-      context(),
-      PoincaréDisk.horotriangle(outerverts, 69, 1/21, 4e-3),
-      stroke("skyblue")
-    ),
-    (
-      context(),
-      Compose.circle(),
-      fill(RGB(0.9, 0.9, 0.9))
-    )
-  )
-  picture |> SVG("horo_test.svg", 7cm, 7cm)
-end
-
 function farey_tiles(; eps = 1e-3, theme = shell, svg = false)
   # write down symmetry group generators in the upper half-plane model
   farey_generators = [[1 2; 0 1], [1 0; 2 1], [1 -2; 0 1], [1 0; -2 1]]
@@ -92,15 +49,15 @@ function farey_tiles(; eps = 1e-3, theme = shell, svg = false)
   
   # draw triangle lifts
   base = IdealPolygon(1, [1, im, -1])
-  leaves = mapcollect(orbiter(base, eps, polygon_penciller(theme)), crawler)
-  leaf_layer = compose(context(), leaves..., stroke(theme.leafcolor), linewidth(0.1mm), fill(nothing))
-  fills = mapcollect(orbiter(base, eps, polygon_inker(theme)), crawler)
-  fill_layer = compose(context(), fills..., fill(theme.checkcolor), stroke(nothing))
+  leaves = ideal_edges(mapcollect(orbiter(base, eps), crawler, prune = true))
+  leaf_layer = compose(context(), leaves, stroke(theme.leafcolor), linewidth(0.1mm))
+  fills = ideal_path(mapcollect(orbiter(base, eps), crawler, prune = true))
+  fill_layer = compose(context(), fills, fill(theme.checkcolor))
   push!(layers, leaf_layer, fill_layer)
   
   # draw background
   if theme.diskcolor != nothing
-    disk = compose(context(), Compose.circle(), fill(theme.diskcolor), stroke(nothing))
+    disk = compose(context(), Compose.circle(), fill(theme.diskcolor))
     push!(layers, disk)
   end
   

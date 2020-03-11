@@ -44,15 +44,23 @@ function mapcollect(f::Function, crawler::CayleyCrawler; prune = false)
   end
 end
 
-altcollect(f::Function, crawler::CayleyCrawler, include = true) =
-  if isempty(crawler.shoots)
-    return include ? [f(crawler.home)] : []
+function altcollect(f::Function, crawler::CayleyCrawler, include = true; prune = false)
+  value = include ? f(crawler.home) : nothing
+  passed = [altcollect(f, sh, !include, prune = prune) for sh in crawler.shoots]
+  if prune
+    collected = vcat(filter(!isnothing, passed)...)
+    if isempty(collected)
+      return (value == nothing) ? nothing : [value]
+    else
+      if (value != nothing)
+        push!(collected, value)
+      end
+      return collected
+    end
   else
-    return vcat(
-      include ? f(crawler.home) : [],
-      [altcollect(f, sh, !include) for sh in crawler.shoots]...
-    )
+    return [value; passed...]
   end
+end
 
 function tipcollect(f::Function, crawler::CayleyCrawler; prune = false)
   if isempty(crawler.shoots)
