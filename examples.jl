@@ -30,8 +30,16 @@ import Cairo, Fontconfig, Main.Regular
 
 # === basic drawing
 
-function horo_test()
-  verts = [1, cis(2pi/3), cis(4pi/3)]
+uhp_to_disk(z) = möbius_map([1 -im; -im 1], z)
+
+function horo_test(shear_l = -3, shear_r = 5)
+  outerdiff = sqrt(3) - 1/sqrt(3)
+  verts = [uhp_to_disk(1/sqrt(3)), im, uhp_to_disk(-1/sqrt(3))]
+  outerverts = [
+    [verts[1], uhp_to_disk(1/sqrt(3) + exp(shear_r/21)*outerdiff), verts[2]],
+    [verts[2], uhp_to_disk(-1/sqrt(3) - exp(shear_l/21)*outerdiff), verts[3]],
+    [verts[3], uhp_to_disk(0), verts[1]]
+  ]
   picture = compose(
     context(),
     (
@@ -45,6 +53,16 @@ function horo_test()
       context(),
       PoincaréDisk.horoleaves([verts, circshift(verts, -1), circshift(verts, -2)], 69, 1/21, 4e-3),
       stroke("tomato")
+    ),
+    (
+      context(),
+      PoincaréDisk.horotriangle(verts, 69, 1/21, 4e-3),
+      stroke("yellowgreen")
+    ),
+    (
+      context(),
+      PoincaréDisk.horotriangle(outerverts, 69, 1/21, 4e-3),
+      stroke("skyblue")
     ),
     (
       context(),

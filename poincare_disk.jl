@@ -216,12 +216,14 @@ function horoleaves(polyverts::Vector{<:Vector{<:Number}}, cnt::Integer, spacing
 end
 
 # draw a triangle foliated by horocycles
-horotriangle(osc::Number, a::Number, b::Number, cnt::Integer, spacing::Number, eps::Number = 1e-2) =
-  compose(
-    context(),
-    horoleaves(osc, a, b, cnt, spacing, eps),
-    horoleaves(a, b, osc, cnt, spacing, eps),
-    horoleaves(b, osc, a, cnt, spacing, eps),
+horotriangle(verts::Vector{<:Number}, cnt::Integer, spacing::Number, eps::Number = 1e-2) =
+  horoleaves([verts, circshift(verts, -1), circshift(verts, -2)], cnt, spacing, eps)
+
+# arguments can be passed in arrays in order to perform multiple drawing operations
+horotriangle(polyverts::Vector{<:Vector{<:Number}}, cnt::Integer, spacing::Number, eps::Number = 1e-2) =
+  horoleaves(
+    vcat([[verts, circshift(verts, -1), circshift(verts, -2)] for verts in polyverts]...),
+    cnt, spacing, eps
   )
 
 end
