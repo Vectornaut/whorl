@@ -11,6 +11,8 @@ module Examples
 
 using
   Printf,
+  Base.Iterators,
+  IterTools,
   Gadfly,
   DataFrames,
   Colors,
@@ -33,13 +35,8 @@ import Cairo, Fontconfig, Main.Regular
 # draw the Veech tree from Davis and Lelièvre's "Periodic paths on the pentagon,
 # double pentagon and golden L" (arXiv:1810.11310) on its Teichmüller disk
 
-##track_orbiter(g) =
-##  m -> reim.([möbius_map(m, 0), möbius_map(m*g, 0)])
-
-spine_orbiter(m) = geodesic(möbius_map(m, -im), möbius_map(m, im))
-
 function golden_bough(; ascent = 6, eps = 1e-3, svg = false)
-  # enumerate symmetry group elements
+  # write down symmetry group elements
   φ = (1 + sqrt(5))/2
   frame = [[1, -im] [-im, 1]]
   σ = [frame * g * inv(frame) for g in [
@@ -94,6 +91,43 @@ function golden_bough(; ascent = 6, eps = 1e-3, svg = false)
     picture |> SVG("golden_bough.svg", 7cm, 7cm)
   else
     picture |> PDF("golden_bough.pdf", 7cm, 7cm)
+  end
+end
+
+function doublegon(n = 3; ascent = 6, eps = 1e-3, svg = false)
+  # take fundamental polygon vertex vectors two at a time
+  a = 2*cos(π/n)
+  rot = [0 1; -1 a]
+  vert_vects = take(iterated(v -> rot*v, [0, 1]), n)
+  
+  # write down symmetry group elements
+  uhp_to_disk = [[1, -im] [-im, 1]]
+  σ = [uhp_to_disk * [v w] * inv(uhp_to_disk) for (v, w) in zip(vert_vects, drop(vert_vects, 1))]
+  transit = [g*h for (g, h) in zip(σ, reverse(σ))]
+  dbl_transit = [transit; [inv(t) for t in transit]]
+  
+  # set up crawler
+  crawler = FreeCrawler(n-1, ascent)
+  findhome!(crawler, dbl_transit)
+  
+  # draw polygon
+  polygon = IdealPolygon(1, [planeproj(uhp_to_disk * v) for v in vert_vects])
+  checks = ideal_path(mapcollect(orbiter(polygon, eps), crawler, prune = true))
+  check_gp = compose(context(), checks, fill(RGB(226/255, 170/255, 0/255)))
+  
+  # draw background
+  disk = compose(context(), Compose.circle(), fill(RGB(255/255, 212/255, 28/255)), stroke(nothing))
+  
+  # render
+  picture = compose(
+    context(),
+    check_gp,
+    disk
+  )
+  if svg
+    picture |> SVG("doublegon.svg", 7cm, 7cm)
+  else
+    picture |> PDF("doublegon.pdf", 7cm, 7cm)
   end
 end
 
