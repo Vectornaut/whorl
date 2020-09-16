@@ -35,65 +35,6 @@ import Cairo, Fontconfig, Main.Regular
 # draw the Veech tree from Davis and Lelièvre's "Periodic paths on the pentagon,
 # double pentagon and golden L" (arXiv:1810.11310) on its Teichmüller disk
 
-function golden_bough(; ascent = 6, eps = 1e-3, svg = false)
-  # write down symmetry group elements
-  φ = (1 + sqrt(5))/2
-  frame = [[1, -im] [-im, 1]]
-  σ = [frame * g * inv(frame) for g in [
-    [1 φ; 0 1],
-    [φ φ; 1 φ],
-    [φ 1; φ φ],
-    [1 0; φ 1]
-  ]]
-  transit = [σ[4]*σ[1], σ[3]*σ[2], σ[2]*σ[3], σ[1]*σ[4]]
-  dbl_transit = [transit; [inv(t) for t in transit]]
-  
-  # set up crawler
-  crawler = FreeCrawler(4, ascent)
-  findhome!(crawler, dbl_transit)
-  
-  # draw spines
-  ##spine_tails = mapcollect(m -> möbius_map(m, -im), crawler)
-  ##spine_heads = mapcollect(m -> möbius_map(m, im), crawler)
-  ##spines = compose(
-  ##  context(),
-  ##  geodesic(spine_tails, spine_heads),
-  ##  stroke("black"), linewidth(0.1mm)
-  ##)
-  
-  # draw pentagon
-  pentagon = IdealPolygon(1, [-im; [möbius_map(frame, u) for u in [1/φ, 1, φ]]; im])
-  checks = ideal_path(mapcollect(orbiter(pentagon, eps), crawler, prune = true))
-  check_gp = compose(context(), checks, fill(RGB(226/255, 170/255, 0/255)))
-  
-  # draw tree edges
-  ##edge_tails = mapcollect(m -> reim(möbius_map(m, 0)), crawler)
-  ##edge_heads = [mapcollect(m -> reim(möbius_map(m*sqrt(g), 0)), crawler) for g in transit]
-  ##edge_colors = ["red", "yellow", "green", "blue"]
-  ##edges = [compose(
-  ##  context(units = UnitBox(-1, -1, 2, 2)),
-  ##  line(collect(zip(edge_tails, heads))),
-  ##  stroke(color), linewidth(0.1mm)
-  ##) for (heads, color) in zip(edge_heads, edge_colors)]
-  
-  # draw background
-  disk = compose(context(), Compose.circle(), fill(RGB(255/255, 212/255, 28/255)), stroke(nothing))
-  
-  # render
-  picture = compose(
-    context(),
-    ##edges,
-    ##spines,
-    check_gp,
-    disk
-  )
-  if svg
-    picture |> SVG("golden_bough.svg", 7cm, 7cm)
-  else
-    picture |> PDF("golden_bough.pdf", 7cm, 7cm)
-  end
-end
-
 function doublegon(n = 3; ascent = 6, eps = 1e-3, svg = false)
   # take fundamental polygon vertex vectors two at a time
   a = 2*cos(π/n)
