@@ -278,6 +278,68 @@ function render(
   compose(context(), layers...)
 end
 
+# foliate the translation surface carrying `loc` at the given angle, pull the
+# leaves tight with respect to the folded hyperbolic structure described by
+# `loc`, and draw a piece of the universal cover of the folded surface. we draw
+# the triangles corresponding to the break points of the first return cocycle,
+# up to 4 returns.
+function renderfolded{R <: AbstractInterval}(
+  angle::R,
+  loc,
+  eps;
+  tumble = false,
+  verbose = false
+)
+  # list complementary triangles
+  orig = PunkdTorus.cocycle(angle, loc) ## will need to adapt to shape, at some point
+  iter = power_twostep(orig, 4, verbose = verbose)
+  jumps = scancollect(iter, Jump, f_fn = FJump, b_fn = BJump)
+  
+  # do centering, if requested
+  ## ...
+  
+  # start a list of layers
+  layers = []
+  
+  # draw leaves
+  ## ...
+  
+  # fill complementary triangles
+  if verbose
+    print("  Inking triangles\n  ")
+  end
+  fills = []
+  inker = (verts, sing) -> ideal_path(verts...)
+  palsize = Int(ceil(1.5length(jumps)))
+  frontpal = sequential_palette(20, palsize, w=0.5, d=0.4, c=0.83, s=0.95, b=0.85, wcolor=RGB(1,1,0), dcolor=RGB(1,0,0))[end-length(jumps)+1:end]
+  backpal = sequential_palette(265, palsize, w=0.15, d=0.2, c=0.88, s=0.5, b=0.7, wcolor=RGB(1,0,1), dcolor=RGB(1,0,0))[end-length(jumps)+1:end]
+  for (j, frontcolor, backcolor) in zip(jumps, frontpal, backpal)
+    t = triangulate(j)
+    if eps == nothing || abs2(t.verts[2] - t.verts[3]) > eps*eps
+      # measure orientation
+      if isa(j, FJump)
+        sweep = (t.verts[1] - t.verts[3]) / (t.verts[2] - t.verts[3])
+      else
+        sweep = (t.verts[2] - t.verts[3]) / (t.verts[1] - t.verts[3])
+      end
+      push!(fills, compose(context(), inker(t.verts, t.sing), fill(imag(sweep) > 0 ? frontcolor : backcolor)))
+    end
+  end
+  if verbose
+    print("  Composing triangles\n  ")
+  end
+  
+  # draw background
+  disk = compose(context(), circle(), fill(RGB(0.96, 0.95, 0.94)), stroke(nothing))
+  
+  # return
+  if tumble
+    [compose(context(), fills[n:end]..., disk) for n in length(fills):-1:1]
+  else
+    compose(context(), fills..., disk)
+  end
+end
+
 # === candy stripes
 
 # visualize the foliation of `loc` at the given angle by running the critical
