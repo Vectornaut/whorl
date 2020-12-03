@@ -283,13 +283,13 @@ end
 # `loc`, and draw a piece of the universal cover of the folded surface. we draw
 # the triangles corresponding to the break points of the first return cocycle,
 # up to 4 returns.
-function renderfolded{R <: AbstractInterval}(
+function renderfolded(
   angle::R,
   loc,
   eps;
   tumble = false,
   verbose = false
-)
+) where R <: AbstractInterval
   # list complementary triangles
   orig = PunkdTorus.cocycle(angle, loc) ## will need to adapt to shape, at some point
   iter = power_twostep(orig, 4, verbose = verbose)

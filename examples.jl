@@ -30,6 +30,10 @@ using
 
 import Cairo, Fontconfig, Main.Regular
 
+# import stuff for quasicrystal examples
+using PerceptualColourMaps, JLD
+import PyPlot
+
 # === golden bough
 
 # draw the Veech tree from Davis and Lelièvre's "Periodic paths on the pentagon,
@@ -762,8 +766,8 @@ function hops_shear_data(example)
   # set parameters
   if (example == HOPS_SHEARS)
     angle = atan(2/(1+sqrt(@interval(5))))
-    e_list = linspace(-0.6, 0.6, 600);
-    l_list = linspace(-0.2, 0.2, 200);
+    e_list = range(-0.6, stop = 0.6, length = 600);
+    l_list = range(-0.2, stop = 0.2, length = 200);
   elseif (example == HOPS_SHEARS_ZOOM)
     angle = atan(2/(1+sqrt(@interval(5))))
   elseif (example == SPIRALING_HOPS)
@@ -831,14 +835,14 @@ function hops_shear_plot(example, crop = false)
     ax[k][:set_ylabel]("Im E", fontsize=size)
     if crop
       if (example == SPIRALING_HOPS)
-        phaseplot = applycycliccolourmap(map(x -> atan2(imag(x[k]), real(x[k])), x_grid[51:152,:]), cmap("C2"), cyclelength = 2pi);
+        phaseplot = applycycliccolourmap(map(x -> atan(imag(x[k]), real(x[k])), x_grid[51:152,:]), cmap("C2"), cyclelength = 2pi);
         ax[k][:imshow](phaseplot, origin="lower", extent = [e_list[1], e_list[end], -l_list[51], l_list[51]])
       elseif (example == GOLDEN_HOPS)
-        phaseplot = applycycliccolourmap(map(x -> atan2(imag(x[k]), real(x[k])), x_grid[101:502,:]), cmap("C2"), cyclelength = 2pi);
+        phaseplot = applycycliccolourmap(map(x -> atan(imag(x[k]), real(x[k])), x_grid[101:502,:]), cmap("C2"), cyclelength = 2pi);
         ax[k][:imshow](phaseplot, origin="lower", extent = [e_list[1], e_list[end], -l_list[201], l_list[201]])
       end
     else
-      phaseplot = applycycliccolourmap(map(x -> atan2(imag(x[k]), real(x[k])), x_grid), cmap("C2"), cyclelength = 2pi);
+      phaseplot = applycycliccolourmap(map(x -> atan(imag(x[k]), real(x[k])), x_grid), cmap("C2"), cyclelength = 2pi);
       ax[k][:imshow](phaseplot, origin="lower", extent = [e_list[1], e_list[end], -l_list[end], l_list[end]])
     end
   end
@@ -886,7 +890,7 @@ function shear_plot_sweep()
       ax[k][:set_xlabel]("Re E", fontsize=size)
       ax[k][:set_ylabel]("Im E", fontsize=size)
       ax[k][:axvline]((1-u)*(4/5) + u*(-1/3), linewidth=1, color="black")
-      phaseplot = applycycliccolourmap(map(x -> atan2(imag(x[k]), real(x[k])), x_grid[51:152,:]), cmap("C2"), cyclelength = 2pi);
+      phaseplot = applycycliccolourmap(map(x -> atan(imag(x[k]), real(x[k])), x_grid[51:152,:]), cmap("C2"), cyclelength = 2pi);
       ax[k][:imshow](phaseplot, origin="lower", extent = [e_list[1], e_list[end], -l_list[51], l_list[51]])
     end
     fig[:tight_layout]()
