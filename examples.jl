@@ -745,12 +745,16 @@ end
 const HOPS_SHEARS = 1
 const HOPS_SHEARS_ZOOM = 2
 const SPIRALING_HOPS = 3
-const GOLDEN_HOPS = 4
+const SPIRALING_HOPS_LO = 4
+const SPIRALING_HOPS_HI = 5
+const GOLDEN_HOPS = 6
 
 const files = [
   "hops/hops_shears.jld",
   "hops/hops_shears_zoom.jld",
   "hops/spiraling_hops.jld",
+  "hops/spiraling_hops_lo.jld",
+  "hops/spiraling_hops_hi.jld",
   "hops/golden_hops.jld"
 ]
 
@@ -766,18 +770,26 @@ function hops_shear_data(example)
   # set parameters
   if (example == HOPS_SHEARS)
     angle = atan(2/(1+sqrt(@interval(5))))
-    e_list = range(-0.6, stop = 0.6, length = 600);
-    l_list = range(-0.2, stop = 0.2, length = 200);
+    e_list = range(-0.6, stop = 0.6, length = 600)
+    l_list = range(-0.2, stop = 0.2, length = 200)
   elseif (example == HOPS_SHEARS_ZOOM)
     angle = atan(2/(1+sqrt(@interval(5))))
   elseif (example == SPIRALING_HOPS)
     angle = @interval(π/4 - 1//1000)
-    e_list = [n/500 for n in -400:400];
-    l_list = [(2n+1)/1000 for n in 0:100];
+    e_list = [n/500 for n in -400:400]
+    l_list = [(2n+1)/1000 for n in 0:100]
+  elseif (example == SPIRALING_HOPS_LO)
+    angle = @interval(π/4 - 1//1000)
+    e_list = [n/100 for n in -150:350]
+    l_list = [(2n+1)/400 for n in 0:40]
+  elseif (example == SPIRALING_HOPS_HI)
+    angle = @interval(π/4 + 1//1000)
+    e_list = [n/100 for n in -150:350]
+    l_list = [(2n+1)/400 for n in 0:40]
   elseif (example == GOLDEN_HOPS)
     angle = atan(2/(1+sqrt(@interval(5))))
-    e_list = [n/2000 for n in 300:1800];
-    l_list = [(1 + 2*n)/4000 for n in 0:300];
+    e_list = [n/2000 for n in 300:1800]
+    l_list = [(1 + 2*n)/4000 for n in 0:300]
   end
   
   # compute shear coordinates
@@ -810,6 +822,8 @@ function hops_shear_plot(example, crop = false)
     else
       fig, ax = PyPlot.subplots(2, 1, figsize=(4.5, 3), dpi=200)
     end
+  elseif (example == SPIRALING_HOPS_LO || example == SPIRALING_HOPS_HI)
+    fig, ax = PyPlot.subplots(2, 1, figsize=(4.5, 1.6), dpi=200)
   elseif (example == GOLDEN_HOPS)
     if (crop)
       fig, ax = PyPlot.subplots(2, 1, figsize=(4.5, 3), dpi=200)
@@ -858,6 +872,10 @@ function hops_shear_plot(example, crop = false)
     else
       PyPlot.savefig("hops/spiraling_hops_full.png")
     end
+  elseif (example == SPIRALING_HOPS_LO)
+    PyPlot.savefig("hops/spiraling_hops_lo.png")
+  elseif (example == SPIRALING_HOPS_HI)
+    PyPlot.savefig("hops/spiraling_hops_hi.png")
   elseif (example == GOLDEN_HOPS)
     if (crop)
       PyPlot.savefig("hops/golden_hops.png")
