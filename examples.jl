@@ -748,6 +748,7 @@ const SPIRALING_HOPS = 3
 const SPIRALING_HOPS_LO = 4
 const SPIRALING_HOPS_HI = 5
 const GOLDEN_HOPS = 6
+const SPIRALING_HOPS_LO_LESS = 7
 
 const files = [
   "hops/hops_shears.jld",
@@ -755,7 +756,8 @@ const files = [
   "hops/spiraling_hops.jld",
   "hops/spiraling_hops_lo.jld",
   "hops/spiraling_hops_hi.jld",
-  "hops/golden_hops.jld"
+  "hops/golden_hops.jld",
+  "hops/spiraling_hops_lo_less.jld"
 ]
 
 # this function records how i made some shear coordinate example data sets in my
@@ -786,6 +788,10 @@ function hops_shear_data(example)
     angle = @interval(π/4 + 1//1000)
     e_list = [n/100 for n in -150:350]
     l_list = [(2n+1)/400 for n in 0:40]
+  elseif (example == SPIRALING_HOPS_LO_LESS)
+    angle = @interval(π/4 - 1//10000)
+    e_list = [n/100 for n in -150:350]
+    l_list = [(2n+1)/400 for n in 0:40]
   elseif (example == GOLDEN_HOPS)
     angle = atan(2/(1+sqrt(@interval(5))))
     e_list = [n/2000 for n in 300:1800]
@@ -806,9 +812,13 @@ end
 #   hops_shear_plot(GOLDEN_HOPS, true)
 #
 # to make the plot in my U of T research statement.
-function hops_shear_plot(example, crop = false)
-  # turn off screen output
-  PyPlot.ioff()
+function hops_shear_plot(example, crop = false; interact = false)
+  # toggle screen output
+  if interact
+    PyPlot.ion()
+  else
+    PyPlot.ioff()
+  end
   
   # set dimensions
   size = 7
@@ -822,7 +832,7 @@ function hops_shear_plot(example, crop = false)
     else
       fig, ax = PyPlot.subplots(2, 1, figsize=(4.5, 3), dpi=200)
     end
-  elseif (example == SPIRALING_HOPS_LO || example == SPIRALING_HOPS_HI)
+  elseif (example == SPIRALING_HOPS_LO || example == SPIRALING_HOPS_HI || example == SPIRALING_HOPS_LO_LESS)
     fig, ax = PyPlot.subplots(2, 1, figsize=(4.5, 1.6), dpi=200)
   elseif (example == GOLDEN_HOPS)
     if (crop)
@@ -862,28 +872,32 @@ function hops_shear_plot(example, crop = false)
   end
   fig[:tight_layout]()
   
-  if (example == HOPS_SHEARS)
-    PyPlot.savefig("hops/hops_shears_full.png")
-  elseif (example == HOPS_SHEARS_ZOOM)
-    PyPlot.savefig("hops/hops_shears_zoom.png")
-  elseif (example == SPIRALING_HOPS)
-    if (crop)
-      PyPlot.savefig("hops/spiraling_hops.png")
-    else
-      PyPlot.savefig("hops/spiraling_hops_full.png")
+  if !interact
+    if (example == HOPS_SHEARS)
+      PyPlot.savefig("hops/hops_shears_full.png")
+    elseif (example == HOPS_SHEARS_ZOOM)
+      PyPlot.savefig("hops/hops_shears_zoom.png")
+    elseif (example == SPIRALING_HOPS)
+      if (crop)
+        PyPlot.savefig("hops/spiraling_hops.png")
+      else
+        PyPlot.savefig("hops/spiraling_hops_full.png")
+      end
+    elseif (example == SPIRALING_HOPS_LO)
+      PyPlot.savefig("hops/spiraling_hops_lo.png")
+    elseif (example == SPIRALING_HOPS_HI)
+      PyPlot.savefig("hops/spiraling_hops_hi.png")
+    elseif (example == SPIRALING_HOPS_LO_LESS)
+      PyPlot.savefig("hops/spiraling_hops_lo_less.png")
+    elseif (example == GOLDEN_HOPS)
+      if (crop)
+        PyPlot.savefig("hops/golden_hops.png")
+      else
+        PyPlot.savefig("hops/golden_hops_full.png")
+      end
     end
-  elseif (example == SPIRALING_HOPS_LO)
-    PyPlot.savefig("hops/spiraling_hops_lo.png")
-  elseif (example == SPIRALING_HOPS_HI)
-    PyPlot.savefig("hops/spiraling_hops_hi.png")
-  elseif (example == GOLDEN_HOPS)
-    if (crop)
-      PyPlot.savefig("hops/golden_hops.png")
-    else
-      PyPlot.savefig("hops/golden_hops_full.png")
-    end
+    PyPlot.close(fig)
   end
-  PyPlot.close(fig)
 end
 
 function shear_plot_sweep()
