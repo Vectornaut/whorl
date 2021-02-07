@@ -137,7 +137,6 @@ function arc(tail::Number, head::Number, dir::Number)
   
   # the magic number
   k = 4/3*(sqrt(2) - 1) * abs(imag(sweep)/real(sweep))
-  println(real(sweep))
   
   # the radius of the arc
   r = abs((head - tail) / 2imag(sweep))
