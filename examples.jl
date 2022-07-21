@@ -118,6 +118,45 @@ function farey_tiles(; eps = 1e-3, theme = shell, svg = false)
   end
 end
 
+# === demo
+
+function point_orbiter(shift)
+  m -> begin
+    x, y = reim(planeproj(m * shift * [0, 1]))
+    compose(context(x - 0.01, y - 0.01, 0.02, 0.02), Compose.circle())
+  end
+end
+
+function line_orbiter(m)
+  geodesic(planeproj(m * [-im, 1]), planeproj(m * [im, 1]))
+end
+
+function tilepoints()
+  # set parameters
+  j = 3
+  k = 4
+  ascent = 2
+  
+  # set up crawler
+  transit = Regular.generators(j, k)
+  crawler = TileCrawler(j, k, ascent)
+  findhome!(crawler, [transit; [inv(t) for t in transit]])
+  
+  # set up other crawler
+  dual_transit = Regular.generators(k, j)
+  dual_crawler = TileCrawler(k, j, ascent)
+  findhome!(dual_crawler, [dual_transit; [inv(t) for t in dual_transit]])
+  
+  picture = compose(context(units = UnitBox(-1, -1, 2, 2)),
+    (context(), mapcollect(point_orbiter(eye(2)), crawler)..., fill("tomato")),
+    (context(), mapcollect(point_orbiter(transit[1]), dual_crawler)..., fill("aquamarine")),
+    ##(context(), mapcollect(line_orbiter, crawler)..., stroke("black"), fill(nothing)),
+    (context(), Compose.circle(), fill("white")),
+    (context(), rectangle(), fill("gray")),
+  )
+  draw(SVG("janos-demo.svg", 7cm, 7cm), picture)
+end
+
 # === abelianization
 
 # print a nicely formatted complex number
