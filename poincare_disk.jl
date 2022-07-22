@@ -53,7 +53,7 @@ end
 # === points, geodesics, and horocycles
 
 # project a line in affine space to the complex plane
-planeproj(v::Vector{T}) where T <: Number = v[1] / v[2]
+planeproj(v::Vector{<:Number}) = v[1] / v[2]
 
 # the control point scale factor in Clinton Curry's method for approximating
 # geodesics by cubic curves
