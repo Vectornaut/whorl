@@ -148,7 +148,7 @@ function tilepoints()
   findhome!(dual_crawler, [dual_transit; [inv(t) for t in dual_transit]])
   
   picture = compose(context(units = UnitBox(-1, -1, 2, 2)),
-    (context(), mapcollect(point_orbiter(eye(2)), crawler)..., fill("tomato")),
+    (context(), mapcollect(point_orbiter(I(2)), crawler)..., fill("tomato")),
     (context(), mapcollect(point_orbiter(transit[1]), dual_crawler)..., fill("aquamarine")),
     ##(context(), mapcollect(line_orbiter, crawler)..., stroke("black"), fill(nothing)),
     (context(), Compose.circle(), fill("white")),
@@ -804,7 +804,7 @@ const files = [
 # output to a file because it's very time-consuming, and that makes the output
 # worth saving. on my machine, for example,
 #
-#   hops_shear_data(GOLDEN_HOPS) 
+#   hops_shear_data(GOLDEN_HOPS)
 #
 # takes about 40 minutes to run.
 function hops_shear_data(example)
