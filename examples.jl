@@ -154,7 +154,7 @@ function tilepoints()
     (context(), Compose.circle(), fill("white")),
     (context(), rectangle(), fill("gray")),
   )
-  draw(SVG("janos-demo.svg", 7cm, 7cm), picture)
+  picture |> PDF("janos-demo.svg", 7cm, 7cm)
 end
 
 # === abelianization
