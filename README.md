@@ -15,14 +15,24 @@ I think Whorl has become useful and usable enough to be worth releasing, but it'
   
   * [ValidatedNumerics](http://dpsanders.github.io/ValidatedNumerics.jl/)
   * [Compose](http://composejl.org/)
-  
-  If you want to run `examples.jl` as is, you'll need a few more packages:
-  
+
+If you want to run `examples.jl` as is, you'll need a few more packages:
+
+  * Cairo
   * [Colors](https://github.com/JuliaGraphics/Colors.jl)
+  * Fontconfig
   * [Gadfly](https://github.com/dcjones/Gadfly.jl)
   * [DataFrames](http://juliastats.github.io/DataFrames.jl/stable/)
-  
-  To [add](http://docs.julialang.org/en/release-0.4/manual/packages/#adding-and-removing-packages) packages, call the `Pkg.add` function from within Julia's interactive environment, which you can launch with the command-line call `julia`.
+  * [IterTools](https://juliacollections.github.io/IterTools.jl/stable/)
+  * JLD
+  * PerceptualColourMaps
+
+To [add](https://pkgdocs.julialang.org/v1/getting-started/) packages:
+
+  1. Launch Julia's interactive environment with the command-line call `julia`.
+  2. Type `]` at the prompt to enter the package manager.
+  3. Call `add ValidatedNumerics` to add a single package, or `add ValidatedNumerics Compose` to
+  4. Type *[backspace]* at the prompt to leave the package manager.
 
 ## Examples
 
